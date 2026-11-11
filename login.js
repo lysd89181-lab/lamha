@@ -89,8 +89,8 @@ if (cardTilt && loginCard && window.matchMedia('(min-width: 1024px)').matches) {
     const cy = window.innerHeight / 2;
     const dx = (e.clientX - cx) / cx;
     const dy = (e.clientY - cy) / cy;
-    targetX = dy * -3;   // rotateX
-    targetY = dx * 3;    // rotateY
+    targetX = dy * -3;
+    targetY = dx * 3;
 
     if (!raf) raf = requestAnimationFrame(tick);
   };
@@ -111,7 +111,6 @@ if (cardTilt && loginCard && window.matchMedia('(min-width: 1024px)').matches) {
 
   window.addEventListener('mousemove', onMove, { passive: true });
 
-  // Reset when leaving window
   window.addEventListener('mouseleave', () => {
     targetX = 0;
     targetY = 0;
@@ -144,7 +143,7 @@ function showView(name) {
 }
 
 /* ═══ Password Toggle ═══ */
-const eyeOpen = '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7"/><circle cx="12" cy="12" r="3"/>';
+const eyeOpen = '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7"/><circle cx="12" cy="12" r="3"/>';
 const eyeOff = '<path d="M17.9 17.9A10.6 10.6 0 0 1 12 19c-6.4 0-10-7-10-7a18 18 0 0 1 4.1-5M9.9 4.2A10.6 10.6 0 0 1 12 5c6.4 0 10 7 10 7a18 18 0 0 1-2.2 3.2M3 3l18 18"/>';
 
 $$('[data-eye]').forEach(btn => {
@@ -172,7 +171,7 @@ $('#rsBack').onclick = () => showView('login');
 
 /* ═══ Firebase Errors ═══ */
 function fbMsg(code) {
-  if (code === 'auth/user-disabled') { try { window.kardoBanned && window.kardoBanned({}); } catch {} return 'حسابك محظور من المطور — تواصل مع الدعم'; }   // v60
+  if (code === 'auth/user-disabled') { try { window.kardoBanned && window.kardoBanned({}); } catch {} return 'حسابك محظور من المطور — تواصل مع الدعم'; }
   const map = {
     'auth/invalid-email': 'البريد الإلكتروني غير صحيح',
     'auth/user-disabled': 'هذا الحساب معطّل',
@@ -186,7 +185,8 @@ function fbMsg(code) {
     'auth/operation-not-allowed': 'هذه العملية غير مسموح بها',
     'auth/unauthorized-domain': 'هذا النطاق غير مُصرّح به',
   };
-  return map[code] || ('خطأ: ' + (code || 'unknown'));
+  return map[code] || ('تعذّر إتمام العملية (' + (code || 'خطأ') + ')');
+}
 
 /* ═══ LOGIN ═══ */
 $('#formLogin').onsubmit = async (e) => {
@@ -202,7 +202,6 @@ $('#formLogin').onsubmit = async (e) => {
   setLoading(btn, true);
   try {
     await signInWithEmailAndPassword(auth, email, pass);
-    // onAuthStateChanged سيتولى التوجيه
   } catch (err) {
     showMsg(fbMsg(err.code));
     setLoading(btn, false, 'تسجيل الدخول');
@@ -226,7 +225,7 @@ $('#formRegister').onsubmit = async (e) => {
   if (phoneKey(phone).length !== 9) return showMsg('رقم الهاتف يجب أن يكون 9 أرقام');
   if (pass.length < 8) return showMsg('كلمة المرور 8 أحرف على الأقل');
   if (refIn && !/^[A-Z2-9]{6}$/.test(refIn)) return showMsg('رمز الدعوة غير صحيح (6 أحرف وأرقام)');
-  try { if (refIn) localStorage.setItem('kardo_ref', refIn); } catch {}   // يُسجَّل بعد إنشاء الحساب في التطبيق
+  try { if (refIn) localStorage.setItem('kardo_ref', refIn); } catch {}
 
   setLoading(btn, true);
   try {
@@ -250,7 +249,6 @@ $('#formRegister').onsubmit = async (e) => {
     }
 
     showMsg('تم إنشاء حسابك — جاري التحويل...', 'success');
-    // onAuthStateChanged سيتولى التوجيه
   } catch (err) {
     showMsg(fbMsg(err.code));
     setLoading(btn, false, 'إنشاء الحساب');
