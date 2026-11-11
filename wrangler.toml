@@ -1,0 +1,25 @@
+name = "kardo"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+keep_vars = true
+
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+[triggers]
+crons = ["*/5 * * * *"]
+
+[vars]
+APP_CHECK_MODE = "off"
+FIREBASE_PROJECT_NUMBER = "593934928630"
+MAIL_FROM = "Kardo <no-reply@kardo.ly>"
+SITE_URL = "https://kardo.ly"
+ALLOWED_ORIGIN = "https://kardo.ly,https://www.kardo.ly"
+[[kv_namespaces]]
+binding = "KV"
+id = "d77dfcd17a0141fc8ba82e437c093e45"
+[[d1_databases]]
+binding = "DB"
+database_name = "kardo-db"
+database_id = "93e64af1-5b61-41b9-9dfc-2aaa9c0bfc50"
