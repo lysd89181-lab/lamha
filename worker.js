@@ -10088,23 +10088,30 @@ function shParseInput(text) {
   const ids = [...new Set(urls.map(u => (u.match(/-p-(\d{5,12})\.html/) || [])[1]).filter(Boolean))].slice(0, 10);
   return ids.length ? { kind: 'products', ids, link: urls[0], key: ids.join(',') } : { kind: 'cart', link: urls[0], key: urls[0] };
 }
-const shShortHost = h => /(^|\.)(onelink\.me|shein\.top)$/i.test(h), shAnyHost = h => /(^|\.)(shein\.(com|top)|onelink\.me)$/i.test(h);
+const shShortHost = h => /(^|\.)(onelink\.me|onelink\.shein\.com|shein\.top)$/i.test(h), shAnyHost = h => /(^|\.)(shein\.(com|top)|onelink\.me)$/i.test(h);
+const shLogHost = l => { try { return new URL(l).hostname; } catch { return ''; } };
+const shLog = o => console.log('SHEIN_T', JSON.stringify(o));
 async function shUnfurl(link) {
-  let cur = link;
+  const t0 = Date.now(); let cur = link, hops = 0, why = '';
   for (let i = 0; i < 4; i++) {
-    let u; try { u = new URL(cur); } catch { break; }
-    if (u.protocol !== 'https:' || !shShortHost(u.hostname)) break;
-    const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 5000);
+    let u; try { u = new URL(cur); } catch { why = 'bad_url'; break; }
+    if (u.protocol !== 'https:' || !shShortHost(u.hostname)) { why = i ? 'final' : 'not_short'; break; }
+    const h0 = Date.now(), ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 5000); let st = 0, loc = '';
     try {
-      const r = await fetch(u.href, { method: 'HEAD', redirect: 'manual', signal: ctl.signal });
-      const loc = r.status >= 300 && r.status < 400 && r.headers.get('location');
-      if (!loc) break;
-      const nx = new URL(loc, u.href);
-      if (nx.protocol !== 'https:' || !shAnyHost(nx.hostname)) break;
-      cur = nx.href;
-    } catch { break; } finally { clearTimeout(tm); }
+      let r = await fetch(u.href, { method: 'HEAD', redirect: 'manual', signal: ctl.signal });
+      if (r.status === 405 || r.status === 501) r = await fetch(u.href, { method: 'GET', redirect: 'manual', signal: ctl.signal });
+      st = r.status; loc = (r.status >= 300 && r.status < 400 && r.headers.get('location')) || '';
+      try { if (r.body && r.body.cancel) r.body.cancel(); } catch {}
+    } catch (e) { shLog({ stage: 'unfurl_hop', host: u.hostname, ms: Date.now() - h0, err: e && e.name === 'AbortError' ? 'timeout' : 'network' }); why = 'hop_error'; break; } finally { clearTimeout(tm); }
+    let nx = null; try { nx = loc ? new URL(loc, u.href) : null; } catch {}
+    shLog({ stage: 'unfurl_hop', host: u.hostname, ms: Date.now() - h0, status: st, to: nx ? nx.hostname : '' });
+    if (!nx) { why = 'no_redirect'; break; }
+    if (nx.protocol !== 'https:' || !shAnyHost(nx.hostname)) { why = 'blocked_host'; break; }
+    cur = nx.href; hops++;
   }
-  return shLinkOk(cur) || link;
+  const out = shLinkOk(cur) || link;
+  shLog({ stage: 'unfurl', ms: Date.now() - t0, hops, resolved: out !== link, why: why || 'max_hops' });
+  return out;
 }
 function shHost(s) {
   const raw = String(s.shein_host || 'https://shein-scraper.omkar.cloud').trim().replace(/\/+$/, '');
@@ -10116,13 +10123,18 @@ function shHost(s) {
 async function shProvOmkar(env, s, link) {
   const key = await shKey(env);
   if (!key) throw httpError(503, 'خدمة SHEIN غير مهيّأة بعد');
-  const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 60000);
+  const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 60000), t0 = Date.now(); let tHead = 0;
   let res, data = null;
   try {
     res = await fetch(`${shHost(s)}/cart/products?link=${encodeURIComponent(link)}&currency=USD&language=ar`, { signal: ctl.signal, headers: { 'API-Key': key, accept: 'application/json' } });
+    tHead = Date.now() - t0;
     const txt = await res.text(); try { data = txt ? JSON.parse(txt) : null; } catch { data = null; }
-  } catch (e) { if (e.status) throw e; throw httpError(502, 'تعذّر جلب السلة — حاول بعد قليل'); }
+  } catch (e) {
+    shLog({ stage: 'omkar', ms: Date.now() - t0, headers_ms: tHead || null, err: e && e.name === 'AbortError' ? 'timeout' : (e && e.status ? 'http_error' : 'network'), link_host: shLogHost(link) });
+    if (e.status) throw e; throw httpError(502, 'تعذّر جلب السلة — حاول بعد قليل');
+  }
   finally { clearTimeout(tm); }
+  shLog({ stage: 'omkar', ms: Date.now() - t0, headers_ms: tHead, status: res.status, items: data && Array.isArray(data.items) ? data.items.length : null, code: (data && data.code) || '', link_host: shLogHost(link) });
   if (!res.ok) {
     const code = data && data.code;
     console.error('SHEIN_PROVIDER', res.status, code || '');
