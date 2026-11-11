@@ -186,8 +186,7 @@ function fbMsg(code) {
     'auth/operation-not-allowed': 'هذه العملية غير مسموح بها',
     'auth/unauthorized-domain': 'هذا النطاق غير مُصرّح به',
   };
-  return map[code] || 'تعذّر إتمام العملية، حاول مرة أخرى';
-}
+  return map[code] || ('خطأ: ' + (code || 'unknown'));
 
 /* ═══ LOGIN ═══ */
 $('#formLogin').onsubmit = async (e) => {
