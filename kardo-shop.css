@@ -277,3 +277,150 @@ html .kwal-grid.kwal-car { padding: 4px 4px 8px; }
 html .kwal:only-child, html .kwal.on:only-child { box-shadow: 0 14px 30px -16px rgba(11, 23, 42, .6) !important; }
 html .balance-action { flex-direction: column !important; }
 html .balance-action .icon svg.ic { margin: 0; }
+
+
+/* ===== v82: نظام مسافات 8px وتطوير واجهة المتجر الفخمة بهوية «لمحة» ===== */
+:root {
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px;
+}
+html[data-theme="dark"] {
+  --u-ink-2: #CBD5E1;
+  --u-ink-3: #94A3B8;
+}
+html[data-theme="light"], :root {
+  --u-ink-2: #334155;
+  --u-ink-3: #475569;
+}
+
+/* شارة الإشعارات بالهيدر: حجم متوازن غير مشتت */
+.bar-lamha .badge, .bar-lamha .bell-badge, .bar-lamha [class*="badge"] {
+  min-width: 18px !important; height: 18px !important; font-size: 10px !important; line-height: 18px !important; padding: 0 5px !important;
+}
+
+/* تخطيط الصفحة والبحث والتصنيفات بنظام 8px */
+.lm-page { padding-bottom: var(--sp-4); }
+.lm-search { height: 48px; padding: 0 var(--sp-4); gap: var(--sp-2); border-radius: 16px; margin: var(--sp-2) 0 var(--sp-3); transition: border-color .2s, box-shadow .2s; }
+.lm-search:focus-within { border-color: var(--lm-accent); box-shadow: var(--shadow-focus); }
+.lm-sec { margin: var(--sp-5) 2px var(--sp-3); }
+.lm-cats { gap: var(--sp-3); margin-top: var(--sp-2); }
+.lm-cats button {
+  min-height: 88px; padding: var(--sp-3) var(--sp-2); border-radius: 18px;
+  background: linear-gradient(160deg, #0F2347 0%, #0B172A 100%);
+  border: 1px solid rgba(56, 189, 248, .18);
+  box-shadow: 0 8px 20px -12px rgba(11, 23, 42, .55);
+  transition: transform .16s ease, border-color .2s ease, box-shadow .2s ease;
+}
+html[data-theme="dark"] .lm-cats button {
+  background: linear-gradient(160deg, var(--u-s2) 0%, var(--u-s1) 100%);
+  border-color: var(--u-line);
+}
+.lm-cats button:active { transform: scale(.97); }
+.lm-cats button span {
+  width: 40px; height: 40px; border-radius: 12px;
+  background: rgba(56, 189, 248, .14); color: #38BDF8;
+}
+
+/* كروت المنتجات المميزة في الرئيسية (أسلوب فخم بصورة واضحة وشريط سفلي) */
+.lm-grid { grid-template-columns: repeat(3, 1fr); gap: var(--sp-3); }
+.lm-prod {
+  position: relative; padding: 0; overflow: hidden; border-radius: 18px;
+  background: var(--lm-card); border: 1px solid var(--u-line);
+  box-shadow: var(--u-shadow); align-items: stretch; text-align: start;
+  transition: transform .16s ease, border-color .2s ease;
+}
+.lm-prod:active { transform: scale(.97); }
+.lm-prod-i {
+  position: relative; width: 100%; height: auto; aspect-ratio: 1 / 1;
+  border-radius: 0; background: var(--u-s2); overflow: hidden;
+}
+.lm-prod-i::after {
+  content: ""; position: absolute; inset: auto 0 0 0; height: 4px;
+  background: linear-gradient(90deg, var(--lm-sky), var(--lm-accent));
+}
+.lm-prod-body {
+  display: flex; flex-direction: column; gap: 3px;
+  padding: var(--sp-2) var(--sp-2) var(--sp-3); min-width: 0; flex: 1;
+}
+.lm-prod b {
+  font: 700 12px/1.35 var(--u-text); color: var(--u-ink);
+  min-height: 32px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.lm-prod-p {
+  font: 700 11.5px var(--u-display); color: var(--lm-sky);
+  display: flex; align-items: center; gap: 4px; margin-top: auto;
+}
+.lm-prod-tag {
+  position: absolute; top: 6px; inset-inline-end: 6px; z-index: 2;
+  padding: 2px 7px; border-radius: 99px; font: 700 9.5px var(--u-text);
+  background: rgba(11, 23, 42, .78); color: #38BDF8; backdrop-filter: blur(6px);
+  border: 1px solid rgba(56, 189, 248, .28);
+}
+
+/* كروت صفحة المتجر (3 أعمدة / عمودين) بلمسة فخمة */
+.kgrid3, .kgrid2 { gap: var(--sp-3) !important; }
+.kcard {
+  border-radius: 18px !important; border: 1px solid var(--u-line) !important;
+  overflow: hidden; box-shadow: var(--u-shadow);
+  transition: transform .16s ease, border-color .2s ease;
+}
+.kcard:active { transform: scale(.97); }
+.kcard::after {
+  content: ""; position: absolute; inset: auto 0 0 0; height: 3px;
+  background: linear-gradient(90deg, var(--lm-sky), var(--lm-accent)); pointer-events: none; z-index: 3;
+}
+.kcard .kc-foot { padding: var(--sp-3) var(--sp-3) var(--sp-3) !important; }
+.kcard .kc-p { color: #38BDF8 !important; font-weight: 800 !important; }
+
+/* أزرار الكمية (+ و -) بمساحة لمس 42px مريحة */
+.kqty button, .sx-p .qt button {
+  min-width: 40px; height: 40px; border-radius: 12px !important;
+  border: 1px solid var(--u-line-2) !important; background: var(--u-s2) !important;
+  color: var(--u-ink) !important; font: 700 18px var(--u-display) !important;
+  display: grid; place-items: center; transition: background .15s;
+}
+.kqty button:active, .sx-p .qt button:active { background: var(--u-s3) !important; }
+
+/* صفحة SHEIN: شريط خطوات مرقّم وواضح + كروت متساوية + شارة التوفير */
+.sx-steps-lbl {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--sp-2);
+  margin: var(--sp-1) 0 var(--sp-4); direction: rtl;
+}
+.sx-steps-lbl .st {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 6px 4px; border-radius: 12px; background: var(--u-s2);
+  border: 1px solid var(--u-line); color: var(--u-ink-3); font: 600 10.5px var(--u-text);
+  transition: all .2s ease;
+}
+.sx-steps-lbl .st b {
+  width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--u-s3); color: var(--u-ink-2); font: 700 11px var(--u-display);
+}
+.sx-steps-lbl .st.on {
+  background: var(--u-gold-soft); border-color: var(--lm-accent); color: var(--u-ink); font-weight: 700;
+}
+.sx-steps-lbl .st.on b { background: var(--lm-accent); color: #0B172A; }
+.sx-steps-lbl .st.done { border-color: rgba(76, 195, 138, .35); color: var(--u-ok); }
+.sx-steps-lbl .st.done b { background: var(--u-ok); color: #fff; }
+
+.sx-grid { gap: var(--sp-3); }
+.sx-p { border-radius: 18px; }
+.sx-p .im { aspect-ratio: 1 / 1; }
+.sx-p .im img { object-fit: cover; }
+.sx-p .nm { padding: var(--sp-2) var(--sp-3) 0; min-height: 38px; color: var(--u-ink); font-weight: 600; }
+.sx-p .pr { padding: var(--sp-1) var(--sp-3) var(--sp-2); display: flex; align-items: baseline; justify-content: space-between; }
+.sx-p .pr small { color: var(--lm-sky); font-weight: 700; }
+.sx-p .qt { padding: 0 var(--sp-3) var(--sp-3); gap: var(--sp-2); }
+
+.sx-save {
+  display: flex; align-items: center; justify-content: center; gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4); margin-bottom: var(--sp-3);
+  border-radius: 16px; background: var(--u-ok-soft); border: 1px solid rgba(76, 195, 138, .35);
+  color: var(--u-ok); font: 700 13.5px var(--u-text); text-align: center;
+}
+
+/* صقل صفحة حسابي / الإعدادات بمسافات 16px موحدة */
+.st-prof { padding: var(--sp-4); gap: var(--sp-3); border-radius: 20px; }
+.st-g { border-radius: 20px; }
+.st-r { padding: var(--sp-4); gap: var(--sp-3); }
+.st-gh { margin: var(--sp-5) var(--sp-2) var(--sp-2); }
+
