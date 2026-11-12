@@ -10091,20 +10091,59 @@ function shParseInput(text) {
 const shShortHost = h => /(^|\.)(onelink\.me|onelink\.shein\.com|shein\.top)$/i.test(h), shAnyHost = h => /(^|\.)(shein\.(com|top)|onelink\.me)$/i.test(h);
 const shLogHost = l => { try { return new URL(l).hostname; } catch { return ''; } };
 const shLog = o => console.log('SHEIN_T', JSON.stringify(o));
+const SH_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
+async function shReadCapped(r, max) {
+  if (r.body && r.body.getReader) {
+    const rd = r.body.getReader(), dec = new TextDecoder(); let out = '', n = 0;
+    try { while (n < max) { const { done, value } = await rd.read(); if (done) break; n += value.length; out += dec.decode(value, { stream: true }); } } finally { try { rd.cancel(); } catch {} }
+    return out.slice(0, max);
+  }
+  return String(await r.text()).slice(0, max);
+}
+function shExtractTarget(html, base, cur) {
+  const un = s => String(s).replace(/\\u0026|\\x26|&amp;|&#38;|&#x26;/gi, '&').replace(/\\u002f|\\x2f|&#x2f;|&#47;/gi, '/').replace(/\\\//g, '/').replace(/&#39;|&#x27;/gi, "'").replace(/&quot;/gi, '"').trim();
+  const flags = { refresh: /http-equiv=["']?refresh/i.test(html), loc: /location(\.href)?\s*=|location\.(replace|assign)\(/i.test(html), af: /af_web_dp=/i.test(html) };
+  const c = [];
+  let m;
+  if ((m = html.match(/<meta[^>]+http-equiv=["']?refresh["']?[^>]*content=["'][^"']*?url=\s*([^"'>\s]+)/i))) c.push(['meta', m[1]]);
+  const jsRe = /(?:window\.|document\.|top\.|self\.)?location(?:\.href)?\s*(?:=|\.replace\(|\.assign\()\s*["'`]([^"'`\s]+)["'`]/gi;
+  while ((m = jsRe.exec(html))) c.push(['js', m[1]]);
+  const afRe = /af_web_dp=([^&"'\s<>\\]+)/gi;
+  while ((m = afRe.exec(html))) { try { c.push(['af_web_dp', decodeURIComponent(un(m[1]))]); } catch {} }
+  const scan = (html.match(/https?:(?:\\?\/){2}[^\s"'<>\\)]+/g) || []).map(un);
+  scan.sort((x, y) => (/shc=|cart\/share/.test(y) ? 1 : 0) - (/shc=|cart\/share/.test(x) ? 1 : 0));
+  scan.forEach(x => c.push(['scan', x]));
+  for (const [via, raw] of c) {
+    let u; try { u = new URL(un(raw), base); } catch { continue; }
+    if (u.protocol !== 'https:' || !shAnyHost(u.hostname) || u.href === cur) continue;
+    if (!shShortHost(u.hostname) && !shLinkOk(u.href)) continue;
+    return { url: u.href, via, flags };
+  }
+  return { url: '', via: '', flags };
+}
 async function shUnfurl(link) {
   const t0 = Date.now(); let cur = link, hops = 0, why = '';
+  const call = async (u, method) => { const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 5000); try { return await fetch(u, { method, redirect: 'manual', signal: ctl.signal, headers: method === 'GET' ? { 'user-agent': SH_UA, accept: 'text/html,*/*', 'accept-language': 'ar,en;q=0.8' } : {} }); } finally { clearTimeout(tm); } };
   for (let i = 0; i < 4; i++) {
     let u; try { u = new URL(cur); } catch { why = 'bad_url'; break; }
     if (u.protocol !== 'https:' || !shShortHost(u.hostname)) { why = i ? 'final' : 'not_short'; break; }
-    const h0 = Date.now(), ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 5000); let st = 0, loc = '';
+    const h0 = Date.now(); let st = 0, loc = '', nx = null, via = '', bytes = 0, flags = null;
     try {
-      let r = await fetch(u.href, { method: 'HEAD', redirect: 'manual', signal: ctl.signal });
-      if (r.status === 405 || r.status === 501) r = await fetch(u.href, { method: 'GET', redirect: 'manual', signal: ctl.signal });
+      let r = await call(u.href, 'HEAD'), isGet = false;
+      if (r.status === 405 || r.status === 501) { r = await call(u.href, 'GET'); isGet = true; }
       st = r.status; loc = (r.status >= 300 && r.status < 400 && r.headers.get('location')) || '';
-      try { if (r.body && r.body.cancel) r.body.cancel(); } catch {}
-    } catch (e) { shLog({ stage: 'unfurl_hop', host: u.hostname, ms: Date.now() - h0, err: e && e.name === 'AbortError' ? 'timeout' : 'network' }); why = 'hop_error'; break; } finally { clearTimeout(tm); }
-    let nx = null; try { nx = loc ? new URL(loc, u.href) : null; } catch {}
-    shLog({ stage: 'unfurl_hop', host: u.hostname, ms: Date.now() - h0, status: st, to: nx ? nx.hostname : '' });
+      if (loc) { try { nx = new URL(loc, u.href); via = 'location'; } catch {} try { r.body && r.body.cancel && r.body.cancel(); } catch {} }
+      else if (st >= 200 && st < 300) {
+        if (!isGet) r = await call(u.href, 'GET');
+        if (r.status >= 300 && r.status < 400 && r.headers.get('location')) { try { nx = new URL(r.headers.get('location'), u.href); via = 'location'; } catch {} }
+        else if (r.status >= 200 && r.status < 300) {
+          const html = await shReadCapped(r, 131072); bytes = html.length;
+          const f = shExtractTarget(html, u.href, cur); flags = f.flags;
+          if (f.url) { nx = new URL(f.url); via = f.via; }
+        }
+      }
+    } catch (e) { shLog({ stage: 'unfurl_hop', host: u.hostname, ms: Date.now() - h0, err: e && e.name === 'AbortError' ? 'timeout' : 'network' }); why = 'hop_error'; break; }
+    shLog({ stage: 'unfurl_hop', host: u.hostname, ms: Date.now() - h0, status: st, via: via || null, to: nx ? nx.hostname : '', bytes: bytes || undefined, flags: flags || undefined });
     if (!nx) { why = 'no_redirect'; break; }
     if (nx.protocol !== 'https:' || !shAnyHost(nx.hostname)) { why = 'blocked_host'; break; }
     cur = nx.href; hops++;

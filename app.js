@@ -311,7 +311,7 @@ const I = {
   paycard: '<rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10h18M7 15h3"/>',
   fire: '<path d="M12 3c1 3.5 5 5.2 5 10a5 5 0 0 1-10 0c0-2.2 1-3.6 2.2-4.6.2 1.6.9 2.6 1.8 3.1C11 8.6 11.3 5.7 12 3z"/>',
 };
-const svg = (d, w = 1.75) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+const svg = (d, w = 1.8) => `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 
 /* ═══ UI Helpers ═══ */
 const setHTML = (sel, html) => { const el = $(sel); if (el) el.innerHTML = html; };

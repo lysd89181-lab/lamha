@@ -42,11 +42,9 @@ html[data-theme="dark"] .lg-d { display: inline-block !important; }
 .bottom-nav { display: grid !important; grid-template-columns: repeat(5, 1fr); gap: 0 !important; background: var(--u-nav) !important; border-top: 1px solid var(--u-line) !important; backdrop-filter: blur(14px); }
 .bottom-nav .nav-item { position: relative; min-width: 0; padding: 6px 2px 0 !important; color: var(--u-ink-3) !important; }
 .bottom-nav .nav-item span { font-size: 10.5px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-.bottom-nav .nav-item svg { width: 24px !important; height: 24px !important; }
 .bottom-nav .nav-item.active { color: var(--u-ink) !important; font-weight: 700 !important; }
 .bottom-nav .nav-item.active svg { color: var(--lm-accent) !important; }
 .bottom-nav .nav-item.active::after { content: ""; position: absolute; bottom: -2px; left: 22%; right: 22%; height: 3px; border-radius: 3px; background: var(--lm-accent); }
-.bottom-nav .nav-item[data-nav="dashboard"] svg { width: 26px !important; height: 26px !important; }
 
 /* عناوين وصفحات */
 .lm-page { padding-bottom: 8px; }
@@ -236,3 +234,46 @@ html[data-theme="dark"] .lm-cats button { background: var(--u-s2); border-color:
 .kc .kc-chip { margin-left: 0 !important; margin-right: auto !important; }
 .sx-acts { margin-top: 14px; }
 .sx-steps { direction: rtl; }
+
+/* ===== نظام الأيقونات الموحد (كل svg.ic) =====
+   24px: الشريط السفلي والهيدر | 20px: القوائم والأزرار والبطاقات | 16px: الشارات والتنبيهات الصغيرة | stroke 1.8 */
+:root { --ic-24: 24px; --ic-20: 20px; --ic-16: 16px; --ic-sw: 1.8; }
+html svg.ic { width: var(--ic-20) !important; height: var(--ic-20) !important; stroke-width: var(--ic-sw) !important; flex: none; }
+html svg.ic.ic-24, html .bottom-nav svg.ic, html .bar svg.ic, html .lm-cats svg.ic { width: var(--ic-24) !important; height: var(--ic-24) !important; }
+html svg.ic.ic-16, html [class*="badge"] svg.ic, html [class*="chip"] svg.ic, html [class*="pill"] svg.ic, html [class*="tag"] svg.ic, html small svg.ic, html .caption svg.ic, html em svg.ic, html .lm-toggle-t svg.ic, html .kset-v svg.ic, html .lm-sec button svg.ic { width: var(--ic-16) !important; height: var(--ic-16) !important; }
+/* أيقونات الحالات الفارغة والصور البديلة (رسومات لا أيقونات واجهة) */
+html .kstate svg.ic { width: 32px !important; height: 32px !important; }
+html .prod-ph svg.ic, html .kc-bg.ph svg.ic { width: 34px !important; height: 34px !important; }
+html .kv-ic svg.ic { width: 26px !important; height: 26px !important; }
+html .ktall-img svg.ic { width: 30px !important; height: 30px !important; }
+
+/* ===== إزالة بقايا ستايل «كاردو» القديم: المحفظة والمتجر والحساب ===== */
+html .kwal-grid.kwal-car { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 2px 0 6px; margin: 0; }
+html .kwal-grid.kwal-car .kwal { flex: 0 0 100%; scroll-snap-align: center; }
+html .kwal-grid.kwal-car .kwal:not(:only-child) { flex-basis: 88%; }
+html .kwal { background: linear-gradient(135deg, #0B172A 0%, #16305A 100%) !important; color: #fff !important; border: 1px solid rgba(255, 255, 255, .08) !important; border-radius: 22px !important; box-shadow: 0 14px 30px -16px rgba(11, 23, 42, .6) !important; padding: 18px !important; min-height: 150px; }
+html .kwal.on { outline: 0 !important; box-shadow: 0 14px 30px -16px rgba(11, 23, 42, .6), 0 0 0 2px var(--lm-accent) !important; }
+html .kwal .kwal-def { background: rgba(255, 255, 255, .16) !important; color: #fff !important; border-radius: 99px; padding: 4px 10px; font-size: 11.5px; font-weight: 700; }
+html .kwal .kwal-n { color: rgba(255, 255, 255, .85) !important; font-weight: 600; }
+html .kwal .kwal-b { color: #fff !important; font-size: 34px; font-weight: 800; }
+html .kwal .kwal-b small { font-size: 14px; opacity: .8; font-weight: 600; }
+html .kwal .kwal-set { background: rgba(255, 255, 255, .18) !important; color: #fff !important; border: 0 !important; border-radius: 12px; padding: 8px 14px; font-weight: 700; font-size: 13px; }
+html .kwal-dots i { background: var(--u-line-2) !important; }
+html .kwal-dots i.on { background: var(--lm-accent) !important; }
+html .balance-card { background: none !important; border: 0 !important; box-shadow: none !important; padding: 0 !important; margin-bottom: 20px !important; }
+html .balance-card::before, html .balance-card::after { display: none !important; }
+html .balance-actions { display: grid !important; grid-template-columns: repeat(3, 1fr); gap: 10px; background: none !important; padding: 0 !important; }
+html .balance-action { display: flex !important; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-height: 84px; border-radius: 18px !important; background: var(--lm-card) !important; border: 1px solid var(--u-line) !important; color: var(--u-ink) !important; font: 600 13px var(--u-text) !important; box-shadow: var(--u-shadow); }
+html .balance-action .icon { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; background: var(--u-s2) !important; color: var(--u-ink) !important; border: 0 !important; }
+html .balance-action[data-action="deposit"] { background: var(--u-gold-fill) !important; color: var(--u-on-gold) !important; border-color: transparent !important; }
+html .balance-action[data-action="deposit"] .icon { background: rgba(255, 255, 255, .16) !important; color: inherit !important; }
+html .balance-action[data-action="deposit"] span { color: var(--u-on-gold) !important; }
+html[data-theme="dark"] .balance-action[data-action="deposit"] .icon { background: rgba(11, 23, 42, .1) !important; }
+html .kme-av { background: linear-gradient(135deg, #0B172A, #16305A) !important; color: #fff !important; border: 1px solid rgba(255, 255, 255, .1) !important; box-shadow: none !important; }
+html .khero { background-color: #0B172A !important; }
+html .kcard, html .kcard.inrow { border-color: var(--u-line) !important; background-image: none !important; }
+html .kcard .kc-p, html .kcard .kc-n { color: #fff !important; font-weight: 800; }
+html .kwal-grid.kwal-car { padding: 4px 4px 8px; }
+html .kwal:only-child, html .kwal.on:only-child { box-shadow: 0 14px 30px -16px rgba(11, 23, 42, .6) !important; }
+html .balance-action { flex-direction: column !important; }
+html .balance-action .icon svg.ic { margin: 0; }

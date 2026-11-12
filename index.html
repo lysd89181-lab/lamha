@@ -38,7 +38,7 @@
 <link rel="stylesheet" href="./kardo-v9.css">
 <link rel="stylesheet" href="./kardo-v10.css">
 <link rel="stylesheet" href="./kardo-ui.css">
-<link rel="stylesheet" href="./kardo-shop.css?v=80">
+<link rel="stylesheet" href="./kardo-shop.css?v=81">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <link rel="icon" type="image/png" href="./favicon-64.png">
@@ -910,7 +910,7 @@ html.boot-app #view:empty::before { content: ''; display: block; height: 180px; 
         <div class="bar-actions">
           <div class="bar-balance" style="display:none" id="barBalance"><span class="tabular" id="barBalanceVal">0.00 د.ل</span></div>
           <button class="icon-btn" id="bellBtn" aria-label="الإشعارات">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8.5a6 6 0 1 0-12 0c0 6-2.5 7.5-2.5 7.5h17S18 14.5 18 8.5"/><path d="M13.7 20a2 2 0 0 1-3.4 0"/></svg>
+            <svg class="ic ic-24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8.5a6 6 0 1 0-12 0c0 6-2.5 7.5-2.5 7.5h17S18 14.5 18 8.5"/><path d="M13.7 20a2 2 0 0 1-3.4 0"/></svg>
           </button>
           <button class="icon-btn" id="avatarBtn" aria-label="الحساب"><div id="avatarInitial" class="kav-sm">؟</div></button>
         </div>
@@ -933,25 +933,25 @@ html.boot-app #view:empty::before { content: ''; display: block; height: 180px; 
 
   <!-- Bottom Navigation (Mobile) -->
   <nav class="bottom-nav" aria-label="التنقل الرئيسي">
-    <button class="nav-item" data-nav="settings" type="button">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"/></svg>
-      <span>الإعدادات</span>
-    </button>
-    <button class="nav-item" data-nav="shein" type="button">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8h12l1 12H5L6 8Z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/></svg>
-      <span>SHEIN</span>
-    </button>
-    <button class="nav-item" data-nav="dashboard" type="button">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.8"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.8"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.8"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.8"/></svg>
-      <span>الرئيسية</span>
+    <button class="nav-item" data-nav="cards" type="button">
+      <svg class="ic ic-24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19M6.5 15h4"/></svg>
+      <span>إصدار بطاقات</span>
     </button>
     <button class="nav-item" data-nav="wallet" type="button">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h15a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3z"/><path d="M3 7V6a2 2 0 0 1 2-2h11"/><circle cx="16.5" cy="13.5" r="1.2"/></svg>
+      <svg class="ic ic-24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h15a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3z"/><path d="M3 7V6a2 2 0 0 1 2-2h11"/><circle cx="16.5" cy="13.5" r="1.2"/></svg>
       <span>المحفظة</span>
     </button>
-    <button class="nav-item" data-nav="cards" type="button">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19M6.5 15h4"/></svg>
-      <span>إصدار بطاقات</span>
+    <button class="nav-item" data-nav="dashboard" type="button">
+      <svg class="ic ic-24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.8"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.8"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.8"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.8"/></svg>
+      <span>الرئيسية</span>
+    </button>
+    <button class="nav-item" data-nav="shein" type="button">
+      <svg class="ic ic-24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8h12l1 12H5L6 8Z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/></svg>
+      <span>SHEIN</span>
+    </button>
+    <button class="nav-item" data-nav="settings" type="button">
+      <svg class="ic ic-24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"/></svg>
+      <span>الإعدادات</span>
     </button>
   </nav>
 

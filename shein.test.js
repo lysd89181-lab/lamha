@@ -27,8 +27,12 @@ const apifyItem = { goods_id: '515174062', name: 'فستان مخطط', link: 'h
 let apify = { status: 201, body: [apifyItem] };
 const PLINK = 'https://us.shein.com/product-p-515174062.html';
 const heads = [], HOPS = { 'https://onelink.me/abc': 'https://onelink.me/xyz', 'https://onelink.me/xyz': 'https://m.shein.com/ar/cart/share/landing?shc=9', 'https://onelink.me/evil': 'https://evil.com/steal', 'https://onelink.shein.com/60/67vfbe3b96hw?shc=2_Rd1PT0wsxYB': 'https://m.shein.com/ar/cart/share/landing?shc=2_Rd1PT0wsxYB&group_id=1', 'https://onelink.shein.com/60/head405': 'https://m.shein.com/ar/cart/share/landing?shc=405' };
+const LAND = 'https://m.shein.com/ar/cart/share/landing?shc=2_Rd1PT0wsxYB&group_id=7';
+const HTMLS = { 'https://onelink.shein.com/60/meta': '<html><head><meta http-equiv="refresh" content="0; url=' + LAND.replace(/&/g, '&amp;') + '"></head></html>', 'https://onelink.shein.com/60/js': '<script>window.location.href = "' + LAND.replace(/&/g, '\\u0026').replace(/\//g, '\\/') + '";</script>', 'https://onelink.shein.com/60/af': '<a href="https://onelink.shein.com/60/af?x=1&af_web_dp=' + encodeURIComponent(LAND) + '">open</a>', 'https://onelink.shein.com/60/scan': '<script>var a="https://www.google.com/x",b="https://cdn.shein.com/logo.png",c="' + LAND + '";</script>', 'https://onelink.shein.com/60/evil': '<script>location.href="https://evil.com/phish?shc=1"</script><meta http-equiv=refresh content="0;url=http://m.shein.com/x">', 'https://onelink.shein.com/60/none': '<html><body>hello</body></html>' };
 const H405 = new Set(['https://onelink.shein.com/60/head405']), gets = [];
-const fakeFetch = async (url, init = {}) => { if (init.method === 'GET' && init.redirect === 'manual') { gets.push(url); const nx = HOPS[url]; return { status: 302, headers: { get: k => k.toLowerCase() === 'location' ? nx : null }, body: null }; }
+const fakeFetch = async (url, init = {}) => { if (init.method === 'GET' && init.redirect === 'manual' && HTMLS[url] !== undefined) { gets.push(url); return { status: 200, headers: { get: () => null }, body: null, text: async () => HTMLS[url] }; }
+  if (init.method === 'HEAD' && HTMLS[url] !== undefined) { heads.push(url); return { status: 200, headers: { get: () => null }, body: null }; }
+  if (init.method === 'GET' && init.redirect === 'manual') { gets.push(url); const nx = HOPS[url]; return { status: 302, headers: { get: k => k.toLowerCase() === 'location' ? nx : null }, body: null }; }
   if (init.method === 'HEAD') { heads.push(url); if (H405.has(url)) return { status: 405, headers: { get: () => null }, body: null }; const nx = HOPS[url]; return nx ? { status: 302, headers: { get: k => k.toLowerCase() === 'location' ? nx : null } } : { status: 200, headers: { get: () => null } }; }
   const u = new URL(url); calls.push({ host: u.hostname, path: u.pathname, method: init.method || 'GET', link: u.searchParams.get('link'), currency: u.searchParams.get('currency'), key: init.headers && init.headers['API-Key'], auth: init.headers && init.headers.authorization, body: init.body ? JSON.parse(init.body) : null });
   if (u.hostname === 'api.apify.com') return { ok: apify.status < 400, status: apify.status, text: async () => JSON.stringify(apify.body) };
@@ -200,5 +204,17 @@ t('مهلة Omkar تُسجَّل كـ timeout في السجل وتعيد رسا�
   reset(); const logs = []; const old = console.log, oldT = ctx.setTimeout; console.log = (...a) => logs.push(a.join(' ')); provider = { status: 200, body: cart, abort: true };
   try { await rejects(A.handleSheinQuote({ uid: U }, { link: LINK }, env), 502); } finally { console.log = old; provider = { status: 200, body: cart }; }
   assert.ok(logs.some(l => l.startsWith('SHEIN_T ') && JSON.parse(l.slice(8)).err === 'timeout'), logs.join('|'));
+});
+t('onelink.shein.com يرد 200: استخراج رابط الهبوط من meta refresh أو window.location أو af_web_dp أو المسح', async () => {
+  for (const k of ['meta', 'js', 'af', 'scan']) { reset(); heads.length = 0; gets.length = 0; assert.strictEqual(await A.shUnfurl('https://onelink.shein.com/60/' + k), LAND, k); assert.strictEqual(gets.length, 1, k); }
+});
+t('استخراج HTML آمن: نطاق غريب أو http أو صفحة بلا هدف يُبقي الرابط الأصلي ويُسجَّل السبب', async () => {
+  for (const k of ['evil', 'none']) { reset(); const logs = []; const old = console.log; console.log = (...a) => logs.push(a.join(' ')); let out; try { out = await A.shUnfurl('https://onelink.shein.com/60/' + k); } finally { console.log = old; } assert.strictEqual(out, 'https://onelink.shein.com/60/' + k, k); const un = logs.map(l => l.startsWith('SHEIN_T ') ? JSON.parse(l.slice(8)) : null).find(x => x && x.stage === 'unfurl'); assert.ok(un && un.resolved === false && un.why === 'no_redirect', k); }
+});
+t('الرابط الحقيقي من التطبيق: الاستخراج + سجل بالطريقة والحجم بدون الرابط الكامل', async () => {
+  reset(); HTMLS['https://onelink.shein.com/60/67vfbe3b96hw?shc=2_Rd1PT0wsxYB'] = HTMLS['https://onelink.shein.com/60/meta']; const logs = []; const old = console.log; console.log = (...a) => logs.push(a.join(' '));
+  let r; try { r = await A.handleSheinQuote({ uid: U }, { link: 'https://onelink.shein.com/60/67vfbe3b96hw?shc=2_Rd1PT0wsxYB' }, env); } finally { console.log = old; }
+  assert.ok(r.qid); assert.strictEqual(calls[calls.length - 1].link, LAND); const hop = logs.filter(l => l.startsWith('SHEIN_T ')).map(l => JSON.parse(l.slice(8))).find(x => x.stage === 'unfurl_hop');
+  assert.strictEqual(hop.via, 'meta'); assert.ok(hop.bytes > 20 && hop.flags.refresh === true); assert.ok(!/shc=|2_Rd1PT0wsxYB/.test(logs.join('\n')));
 });
 (async () => { let ok = 0; for (const [n, f] of tests) { try { await f(); ok++; console.log('ok -', n); } catch (e) { console.log('FAIL -', n, '\n   ', (e.stack || e.message).split('\n').slice(0, 3).join('\n    ')); process.exitCode = 1; } } console.log(`\n${ok}/${tests.length} passed`); })();
