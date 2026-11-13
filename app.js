@@ -855,9 +855,18 @@ let _lastPage = null, _lastHtml = '';
 function lmProd(c) {
   const p = rscNameParts(c.name), min = c.offers && c.offers.length ? c.offers[0].price : 0;
   const price = min > 0 ? (wDef() === 'usd' ? lyd(min * rate()) : wFmt(wPrice(min))) : '';
-  return `<button class="lm-prod${c.maint ? ' off' : ''}" data-rsccat="${esc(c.key)}" type="button"><span class="lm-prod-i">${rscImgTag(c)}</span><b dir="auto">${esc(p.title)}</b>${price ? `<span class="lm-prod-p tabular">${esc(price)}</span>` : ''}</button>`;
+  return `<button class="lm-prod${c.maint ? ' off' : ''}" data-rsccat="${esc(c.key)}" type="button"><span class="lm-prod-i"${c.image ? ` style="--cv:url('${esc(rscImgUrl(c.image))}')"` : ''}>${rscImgTag(c)}</span><span class="lm-prod-b"><b dir="auto">${esc(p.title)}</b>${price ? `<span class="lm-prod-p tabular">${esc(price)}</span>` : ''}</span></button>`;
 }
-const LM_CATS = [['gift', 'بطاقات عالمية', 'giftbox'], ['topup', 'شحن الألعاب', 'game'], ['subs', 'اشتراكات رقمية', 'paycard']];
+const LM_CATS = [['all', 'الكل', 'grid', 'data-rscgo="all"'], ['topup', 'شحن الألعاب', 'game', 'data-rscgo="topup"'], ['gift', 'بطاقات', 'giftbox', 'data-rscgo="gift"'], ['subs', 'اشتراكات', 'paycard', 'data-rscgo="subs"']];
+function lmHero() {
+  const b = bannersHtml(); if (b) return b;
+  const sl = [];
+  if (S.config.shein) sl.push({ c: 's-shein', go: 'data-nav="shein"', k: 'تسوّق من العالم وادفع بالدينار', t: 'لقيت اللي تبيه في SHEIN؟', d: 'حط رابط سلتك واعرف السعر بالدينار الليبي قبل ما تطلب.', cta: 'احسب سعر طلبك', ic: EI.bag });
+  sl.push({ c: 's-game', go: 'data-rscgo="topup"', k: 'شحن مباشر', t: 'اشحن لعبتك في دقائق', d: 'ببجي وفري فاير وفورتنايت وأكثر، بالدينار الليبي.', cta: 'اشحن الآن', ic: EI.game });
+  sl.push({ c: 's-gift', go: 'data-rscgo="gift"', k: 'بطاقات عالمية', t: 'بطاقات هدايا واشتراكات', d: 'iTunes وGoogle Play وPlayStation وغيرها، والكود يوصلك فورًا.', cta: 'تصفّح البطاقات', ic: EI.gift });
+  sl.push({ c: 's-card', go: 'data-nav="cards"', k: 'بطاقة فيزا افتراضية', t: 'ادفع أونلاين من أي مكان', d: 'أصدر بطاقتك وتحكّم في رصيدها من التطبيق.', cta: 'إصدار بطاقة', ic: EI.card });
+  return `<div class="bn-wrap lm-hero" id="bnWrap"><div class="bn-track" id="bnTrack">${sl.map(s => `<button class="bn-slide lm-slide ${s.c}" ${s.go} type="button"><span class="lm-slide-t"><small>${s.k}</small><b>${s.t}</b><span>${s.d}</span><em>${s.cta} ${svg(I.back, 2)}</em></span><span class="lm-slide-ic">${svg(s.ic)}</span></button>`).join('')}</div><div class="bn-dots">${sl.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div></div>`;
+}
 function vDashboard() {
   const st = secOf('store'), on = rscOn() && st.s !== 'off';
   if (on && !S.rsc.loaded) loadRsc();
@@ -865,23 +874,23 @@ function vDashboard() {
   const seen = new Set(), feat = [];
   for (const c of [...rscPopular(cats, 9), ...rscPicks(cats, 9), ...cats.filter(c => c.featured), ...cats]) { if (!seen.has(c.key)) { seen.add(c.key); feat.push(c); } if (feat.length >= 9) break; }
   if (on && S.user && !S.rscOrders) { S.rscOrders = []; loadRscOrders(); }
+  const first = String(S.profile.name || '').trim().split(/\s+/)[0] || '', bal = wBalOf(S.config.unified ? wT() : 'bk');
   return `
   <div class="page-enter lm-page">
     ${S.config.site_maint ? `<div class="alert alert-warning mb-4">${svg(I.help)}<div><b>معاينة الإدارة</b> — الموقع في وضع الصيانة والزوار يرون شاشة الصيانة.</div></div>` : ''}
     ${verifyBannerHtml()}
     ${(() => { const p = S.config.promo_first; if (!p || S.profile.promo_first_done) return '';
-      return `<button class="kpromo" data-act="dock-deposit" type="button"><span class="kpromo-ic">🎁</span><div><b>اشحن أول مرة بـ ${esc(String(p.min))}$ وخذ ${esc(String(p.bonus))}$ هدية</b><span>${S.profile.phone_verified ? 'تنضاف لمحفظتك تلقائيًا بعد أول شحنة' : 'وثّق رقمك أولًا'}</span></div></button>`; })()}
+      return `<button class="kpromo" data-act="dock-deposit" type="button"><span class="kpromo-ic">${svg(EI.gift)}</span><div><b>اشحن أول مرة بـ ${esc(String(p.min))}$ وخذ ${esc(String(p.bonus))}$ هدية</b><span>${S.profile.phone_verified ? 'تنضاف لمحفظتك تلقائيًا بعد أول شحنة' : 'وثّق رقمك أولًا'}</span></div></button>`; })()}
     ${(() => { const v = pendingInvoice(); return v ? `<button class="kpend" data-pendinv type="button"><span class="kpulse"></span><div><b>فاتورة شحن بانتظار الدفع</b><span class="tabular">${esc(v.no)} · ${esc(Number(v.pay_amount).toFixed(2))} USDT</span></div></button>` : ''; })()}
-    ${bannersHtml()}
+    <div class="lm-hello"><div><small>أهلاً بك${first ? '،' : ''}</small><b>${esc(first || 'في لمحة')}</b></div>
+      <button class="lm-bal" data-nav="wallet" type="button" aria-label="المحفظة"><span class="lm-bal-ic">${svg(I.wallet2)}</span><span><small>رصيدك</small><b class="tabular">${esc(lyd(bal))}</b></span></button></div>
+    ${on && st.s !== 'maint' ? lmHero() : ''}
     <label class="lm-search">${svg(I.search)}<input id="lmQ" type="search" placeholder="ابحث عن منتج أو خدمة..." autocomplete="off" enterkeyhint="search" aria-label="بحث"></label>
-    <h1 class="lm-title">المتجر الرقمي</h1>
-    <p class="lm-sub">كل ما تحتاجه في مكان واحد</p>
     ${on && st.s === 'maint' ? `<div class="ksec-note">${svg(I.help)}<div><b>المتجر قيد الصيانة</b><span>${esc(st.msg || 'نرجعوا قريب إن شاء الله')}</span></div></div>` : ''}
     ${on && st.s !== 'maint' ? `
-    <div class="lm-cats">${LM_CATS.map(([k, t, ic]) => `<button data-rscgo="${k}" type="button"><span>${svg(I[ic])}</span>${t}</button>`).join('')}</div>
-    ${S.config.shein ? `<button class="lm-promo" data-nav="shein" type="button"><span class="lm-promo-t"><small>تسوّق من العالم وادفع بالدينار</small><b>لقيت اللي تبيه في SHEIN؟</b><span>حط رابط سلتك، واحصل على السعر بالدينار الليبي قبل ما تطلب.</span><em>احسب سعر طلبك ${svg(I.back, 2)}</em></span><span class="lm-promo-ic">${svg(EI.bag)}</span></button>` : ''}
-    <div class="lm-sec"><h2>منتجات مميزة</h2><button data-rscgo="all" type="button">عرض الكل ${svg(I.back, 2)}</button></div>
-    ${!S.rsc.loaded && !S.rsc.error ? `<div class="lm-grid">${'<div class="skeleton" style="height:122px;border-radius:16px"></div>'.repeat(6)}</div>` : ''}
+    <div class="lm-cats">${LM_CATS.map(([k, t, ic, at]) => `<button class="c-${k}" ${at} type="button"><span>${svg(I[ic])}</span><em>${t}</em></button>`).join('')}${S.config.shein ? `<button class="c-shein" data-nav="shein" type="button"><span>${svg(EI.bag)}</span><em>SHEIN</em></button>` : ''}</div>
+    <div class="lm-sec"><span class="lm-sec-ic">${svg(EI.flame)}</span><div><h2>منتجات مميزة</h2>${S.rsc.loaded && cats.length ? `<small>+${cats.length} منتج</small>` : ''}</div><button data-rscgo="all" type="button">عرض الكل ${svg(I.back, 2)}</button></div>
+    ${!S.rsc.loaded && !S.rsc.error ? `<div class="lm-grid">${'<div class="skeleton" style="height:168px;border-radius:20px"></div>'.repeat(6)}</div>` : ''}
     ${S.rsc.error && !S.rsc.loaded ? `<div class="card" style="text-align:center;padding:24px 18px"><div class="h4 mb-3">تعذّر تحميل المتجر</div><button class="btn btn-primary" data-rscretry type="button">إعادة المحاولة</button></div>` : ''}
     ${S.rsc.loaded && feat.length ? `<div class="lm-grid">${feat.map(lmProd).join('')}</div>` : ''}
     ${S.rsc.loaded && rscAgain() ? `<div class="lm-again">${rscAgain()}</div>` : ''}` : ''}
@@ -1808,28 +1817,31 @@ function vSettings() {
   const ch = svg(I.next);
   const row = (attrs, ic, title, end = '', cls = '') => `<button class="kset-row ${cls}" ${attrs} type="button">
       <span class="kset-ic">${svg(ic)}</span><span class="kset-t">${title}</span>${end}<span class="kset-ch">${ch}</span></button>`;
+  const ph = S.profile.phone_verified ? '0' + String(S.profile.phone_verified) : '';
   return `
   <div class="page-enter settings-page">
-    <div class="kme">
-      <div class="kme-av" aria-hidden="true">${esc((nm.trim()[0] || 'ل').toUpperCase())}</div>
-      <div class="kme-main">
-        <div class="kme-name">${esc(nm)}</div>
-        <div class="kme-mail" dir="ltr">${esc(email)}</div>
-        <div class="kme-tags">
-          <span class="kme-tag gold">باقة ${esc(PLAN_AR[myPlan()])}</span>
-          ${S.profile.email_verified ? '<span class="kme-tag ok">البريد مؤكَّد</span>' : ''}
-          ${S.profile.phone_verified ? '<span class="kme-tag ok">الرقم موثّق</span>' : ''}
-        </div>
+    <div class="st-me">
+      <div class="st-av" aria-hidden="true"><span>${esc((nm.trim()[0] || 'ل').toUpperCase())}</span>${S.profile.email_verified ? `<i class="st-vf">${svg(EI.check, 3)}</i>` : ''}</div>
+      <div class="st-id">
+        <b>${esc(nm)}</b>
+        <small dir="ltr">${esc(ph || email)}</small>
+        <div class="st-tags"><span>باقة ${esc(PLAN_AR[myPlan()])}</span>${S.profile.phone_verified ? '<span class="ok">الرقم موثّق</span>' : ''}</div>
+        <button class="st-chip" data-act="dock-deposit" type="button">${svg(I.wallet2)} شحن المحفظة</button>
       </div>
+    </div>
+    <div class="st-quick">
+      <button data-theme-set="${({ auto: 'light', light: 'dark', dark: 'auto' })[themePref()] || 'dark'}" type="button"><span class="q-a">${svg(EI.moon)}</span>المظهر: ${({ auto: 'تلقائي', light: 'نهاري', dark: 'ليلي' })[themePref()] || 'تلقائي'}</button>
+      <button data-nav="support" type="button"><span class="q-b">${svg(EI.chat)}</span>الدعم الفني</button>
+      <button data-howto="all" type="button"><span class="q-c">${svg(I.help)}</span>كيف أدفع؟</button>
     </div>
 
     <div class="kset-label">نشاطي</div>
     <div class="kset">
-      ${row('data-nav="orders"', I.receipt, 'طلباتي')}
-      ${row('data-nav="transactions"', I.list, 'المعاملات')}
-      ${row('data-nav="invoices"', I.receipt, 'فواتيري')}
-      ${row('data-nav="plans"', I.star, 'الباقات', `<span class="kset-v">${esc(PLAN_AR[myPlan()])}</span>`)}
-      ${row('data-nav="referral"', I.giftbox, 'ادعُ صديقًا واربح')}
+      ${row('data-nav="orders"', I.receipt, 'طلباتي<small>تابع كل طلباتك وحالتها</small>')}
+      ${row('data-nav="transactions"', I.list, 'المعاملات<small>سجل حركات حسابك</small>')}
+      ${row('data-nav="invoices"', I.receipt, 'فواتيري<small>إيصالاتك وفواتير الشحن</small>')}
+      ${row('data-nav="plans"', I.star, 'الباقات<small>ترقية الحساب والمزايا</small>', `<span class="kset-v">${esc(PLAN_AR[myPlan()])}</span>`)}
+      ${row('data-nav="referral"', I.giftbox, 'ادعُ صديقًا واربح<small>مكافأة على كل دعوة ناجحة</small>')}
     </div>
 
     <div class="kset-label">التوثيق والأمان</div>

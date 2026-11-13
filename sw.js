@@ -1,5 +1,5 @@
 /* LAMHA service worker — ملفات الموقع فقط، لا يلمس الـ API ولا البيانات */
-const V = 'lamha-v82';
+const V = 'lamha-v83';
 const CORE = ['./', './index.html', './app.js', './config.js', './styles.css', './theme-desert.css', './kardo-v8.css', './kardo-v9.css', './kardo-v10.css', './kardo-ui.css', './kardo-shop.css', './gate.js', './kardo-qr.js', './manifest.json', './favicon-64.png', './lamha-mark.png', './lamha-mark-w.png', './lamha-chip.png', './lamha-logo.png', './lamha-logo-w.png', './icon-192.png',
   './fennec-welcome.webp', './fennec-success.webp', './fennec-empty.webp', './fennec-card.webp', './fennec-wait.webp', './fennec-error.webp'];
 
