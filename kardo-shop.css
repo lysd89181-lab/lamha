@@ -278,149 +278,141 @@ html .kwal:only-child, html .kwal.on:only-child { box-shadow: 0 14px 30px -16px 
 html .balance-action { flex-direction: column !important; }
 html .balance-action .icon svg.ic { margin: 0; }
 
-
-/* ===== v82: نظام مسافات 8px وتطوير واجهة المتجر الفخمة بهوية «لمحة» ===== */
+/* =====================================================================
+   المرحلة الأولى — نظام التصميم والحركة (لمحة | LAMHA)
+   خط واحد، مسافات وأحجام ثابتة، حركة 150–350ms، ودعم تقليل الحركة
+   ===================================================================== */
 :root {
-  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px;
+  --font-ui: 'IBM Plex Sans Arabic', 'Tajawal', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --u-text: var(--font-ui); --u-display: var(--font-ui); --font: var(--font-ui); --font-display: var(--font-ui); --font-latin-display: var(--font-ui);
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 20px; --s-6: 24px; --s-8: 32px;
+  --fs-xs: 12px; --fs-sm: 13px; --fs-md: 15px; --fs-lg: 17px; --fs-xl: 20px; --fs-2xl: 24px;
+  --rd-sm: 12px; --rd-md: 16px; --rd-lg: 20px; --rd-xl: 24px;
+  --dur-1: 160ms; --dur-2: 240ms; --dur-3: 320ms;
+  --ease-out: cubic-bezier(.22, 1, .36, 1); --ease-std: cubic-bezier(.4, 0, .2, 1);
 }
-html[data-theme="dark"] {
-  --u-ink-2: #CBD5E1;
-  --u-ink-3: #94A3B8;
-}
-html[data-theme="light"], :root {
-  --u-ink-2: #334155;
-  --u-ink-3: #475569;
+html, body, button, input, select, textarea { font-family: var(--font-ui); }
+h1, h2, h3, .lm-title, .ktop-t, .kpage-title { font-family: var(--font-ui); font-weight: 700; letter-spacing: 0; }
+.tabular, .lm-prod-p, .kpkc .p, .kpkc .u, .kbuy-t b, .kwal-b, .sx-big strong, .sx-p .pr, .kc-p, .lm-info-i b { font-variant-numeric: tabular-nums lining-nums; letter-spacing: 0; }
+.ei { display: inline-flex; vertical-align: -.2em; margin-inline: 1px; }
+html .ei svg.ic { width: 1.1em !important; height: 1.1em !important; }
+
+/* الضغط والتحويم */
+button, .btn, .lm-prod, .kpkc, .lm-row, .st-r, .kset-row, .sx-opt, .lm-promo, .kcard, .lm-cats button, .balance-action, .bottom-nav .nav-item, .kopt { transition: transform var(--dur-1) var(--ease-out), box-shadow var(--dur-2) var(--ease-out), background-color var(--dur-2) var(--ease-std), border-color var(--dur-2) var(--ease-std), color var(--dur-2) var(--ease-std), opacity var(--dur-2) var(--ease-std); -webkit-tap-highlight-color: transparent; }
+button:not(:disabled):active, .btn:not(:disabled):active, .lm-prod:active, .kpkc:active, .lm-row:active, .st-r:active, .kset-row:active, .sx-opt:active, .lm-promo:active, .kcard:active, .lm-cats button:active, .balance-action:active, .kopt:active { transform: scale(.97); }
+.bottom-nav .nav-item:active svg { transform: scale(.88); }
+@media (hover: hover) {
+  .lm-prod:hover, .kcard:hover, .sx-p:hover, .lm-row:hover, .kpkc:not(.on):hover { transform: translateY(-3px); box-shadow: 0 14px 28px -16px rgba(11, 23, 42, .35); border-color: var(--u-line-2); }
+  .lm-cats button:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -14px rgba(11, 23, 42, .55); }
+  .lm-cta:hover, .btn-primary:hover, .kbuy-b:hover { filter: brightness(1.07); }
+  .st-r:hover, .kset-row:hover { background: var(--u-s2); }
+  .lm-promo:hover { transform: translateY(-2px); box-shadow: 0 18px 34px -18px rgba(11, 23, 42, .6); }
 }
 
-/* شارة الإشعارات بالهيدر: حجم متوازن غير مشتت */
-.bar-lamha .badge, .bar-lamha .bell-badge, .bar-lamha [class*="badge"] {
-  min-width: 18px !important; height: 18px !important; font-size: 10px !important; line-height: 18px !important; padding: 0 5px !important;
-}
+/* انتقال الصفحات + الظهور عند التمرير */
+.page-enter { animation: pg-in var(--dur-3) var(--ease-out) both; }
+@keyframes pg-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+.rv:not(.rv-in) { opacity: 0; transform: translateY(14px); }
+.rv-in { animation: rv-up var(--dur-3) var(--ease-out) var(--rv-d, 0ms) backwards; }
+@keyframes rv-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 
-/* تخطيط الصفحة والبحث والتصنيفات بنظام 8px */
-.lm-page { padding-bottom: var(--sp-4); }
-.lm-search { height: 48px; padding: 0 var(--sp-4); gap: var(--sp-2); border-radius: 16px; margin: var(--sp-2) 0 var(--sp-3); transition: border-color .2s, box-shadow .2s; }
-.lm-search:focus-within { border-color: var(--lm-accent); box-shadow: var(--shadow-focus); }
-.lm-sec { margin: var(--sp-5) 2px var(--sp-3); }
-.lm-cats { gap: var(--sp-3); margin-top: var(--sp-2); }
-.lm-cats button {
-  min-height: 88px; padding: var(--sp-3) var(--sp-2); border-radius: 18px;
-  background: linear-gradient(160deg, #0F2347 0%, #0B172A 100%);
-  border: 1px solid rgba(56, 189, 248, .18);
-  box-shadow: 0 8px 20px -12px rgba(11, 23, 42, .55);
-  transition: transform .16s ease, border-color .2s ease, box-shadow .2s ease;
-}
-html[data-theme="dark"] .lm-cats button {
-  background: linear-gradient(160deg, var(--u-s2) 0%, var(--u-s1) 100%);
-  border-color: var(--u-line);
-}
-.lm-cats button:active { transform: scale(.97); }
-.lm-cats button span {
-  width: 40px; height: 40px; border-radius: 12px;
-  background: rgba(56, 189, 248, .14); color: #38BDF8;
-}
+/* الشريط السفلي: مؤشر نشط وانتقال */
+.bottom-nav .nav-item::after { transform: scaleX(0); transform-origin: center; transition: transform var(--dur-2) var(--ease-out); opacity: 1; }
+.bottom-nav .nav-item.active::after { transform: scaleX(1); }
+.bottom-nav .nav-item svg { transition: transform var(--dur-2) var(--ease-out), color var(--dur-2) var(--ease-std); }
+.bottom-nav .nav-item.active svg { transform: translateY(-2px) scale(1.08); }
 
-/* كروت المنتجات المميزة في الرئيسية (أسلوب فخم بصورة واضحة وشريط سفلي) */
-.lm-grid { grid-template-columns: repeat(3, 1fr); gap: var(--sp-3); }
-.lm-prod {
-  position: relative; padding: 0; overflow: hidden; border-radius: 18px;
-  background: var(--lm-card); border: 1px solid var(--u-line);
-  box-shadow: var(--u-shadow); align-items: stretch; text-align: start;
-  transition: transform .16s ease, border-color .2s ease;
-}
-.lm-prod:active { transform: scale(.97); }
-.lm-prod-i {
-  position: relative; width: 100%; height: auto; aspect-ratio: 1 / 1;
-  border-radius: 0; background: var(--u-s2); overflow: hidden;
-}
-.lm-prod-i::after {
-  content: ""; position: absolute; inset: auto 0 0 0; height: 4px;
-  background: linear-gradient(90deg, var(--lm-sky), var(--lm-accent));
-}
-.lm-prod-body {
-  display: flex; flex-direction: column; gap: 3px;
-  padding: var(--sp-2) var(--sp-2) var(--sp-3); min-width: 0; flex: 1;
-}
-.lm-prod b {
-  font: 700 12px/1.35 var(--u-text); color: var(--u-ink);
-  min-height: 32px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-}
-.lm-prod-p {
-  font: 700 11.5px var(--u-display); color: var(--lm-sky);
-  display: flex; align-items: center; gap: 4px; margin-top: auto;
-}
-.lm-prod-tag {
-  position: absolute; top: 6px; inset-inline-end: 6px; z-index: 2;
-  padding: 2px 7px; border-radius: 99px; font: 700 9.5px var(--u-text);
-  background: rgba(11, 23, 42, .78); color: #38BDF8; backdrop-filter: blur(6px);
-  border: 1px solid rgba(56, 189, 248, .28);
-}
+/* التحميل (Skeleton) */
+.skeleton { background: linear-gradient(100deg, var(--u-s2) 30%, var(--u-s3) 50%, var(--u-s2) 70%) !important; background-size: 220% 100% !important; animation: sk-sh 1.4s linear infinite !important; border-radius: var(--rd-md); }
+@keyframes sk-sh { from { background-position: 120% 0; } to { background-position: -120% 0; } }
 
-/* كروت صفحة المتجر (3 أعمدة / عمودين) بلمسة فخمة */
-.kgrid3, .kgrid2 { gap: var(--sp-3) !important; }
-.kcard {
-  border-radius: 18px !important; border: 1px solid var(--u-line) !important;
-  overflow: hidden; box-shadow: var(--u-shadow);
-  transition: transform .16s ease, border-color .2s ease;
-}
-.kcard:active { transform: scale(.97); }
-.kcard::after {
-  content: ""; position: absolute; inset: auto 0 0 0; height: 3px;
-  background: linear-gradient(90deg, var(--lm-sky), var(--lm-accent)); pointer-events: none; z-index: 3;
-}
-.kcard .kc-foot { padding: var(--sp-3) var(--sp-3) var(--sp-3) !important; }
-.kcard .kc-p { color: #38BDF8 !important; font-weight: 800 !important; }
+/* الإشعارات (Toast) */
+#toasts { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 12px); inset-inline: 12px; display: flex; flex-direction: column; align-items: center; gap: var(--s-2); z-index: 200; pointer-events: none; }
+.toast { pointer-events: auto; display: flex; align-items: center; gap: 10px; max-width: 420px; width: 100%; padding: 12px 14px; border-radius: var(--rd-md); background: var(--lm-card); color: var(--u-ink); border: 1px solid var(--u-line); border-inline-start: 4px solid var(--u-line-2); box-shadow: 0 16px 32px -14px rgba(11, 23, 42, .45); font: 600 var(--fs-sm)/1.5 var(--font-ui); animation: toast-in var(--dur-3) var(--ease-out) both; }
+.toast.success { border-inline-start-color: var(--u-ok); }
+.toast.error { border-inline-start-color: var(--u-err); }
+.toast span:first-child { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--u-s2); flex: none; }
+.toast.success span:first-child { background: var(--u-ok-soft); }
+.toast.error span:first-child { background: var(--u-err-soft); }
+@keyframes toast-in { from { opacity: 0; transform: translateY(-14px) scale(.97); } to { opacity: 1; transform: none; } }
 
-/* أزرار الكمية (+ و -) بمساحة لمس 42px مريحة */
-.kqty button, .sx-p .qt button {
-  min-width: 40px; height: 40px; border-radius: 12px !important;
-  border: 1px solid var(--u-line-2) !important; background: var(--u-s2) !important;
-  color: var(--u-ink) !important; font: 700 18px var(--u-display) !important;
-  display: grid; place-items: center; transition: background .15s;
-}
-.kqty button:active, .sx-p .qt button:active { background: var(--u-s3) !important; }
+/* تبديل الوضع الداكن/الفاتح بسلاسة */
+html.theme-anim, html.theme-anim *, html.theme-anim *::before, html.theme-anim *::after { transition: background-color 320ms var(--ease-std), color 320ms var(--ease-std), border-color 320ms var(--ease-std), fill 320ms var(--ease-std), stroke 320ms var(--ease-std), box-shadow 320ms var(--ease-std) !important; }
 
-/* صفحة SHEIN: شريط خطوات مرقّم وواضح + كروت متساوية + شارة التوفير */
-.sx-steps-lbl {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--sp-2);
-  margin: var(--sp-1) 0 var(--sp-4); direction: rtl;
-}
-.sx-steps-lbl .st {
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  padding: 6px 4px; border-radius: 12px; background: var(--u-s2);
-  border: 1px solid var(--u-line); color: var(--u-ink-3); font: 600 10.5px var(--u-text);
-  transition: all .2s ease;
-}
-.sx-steps-lbl .st b {
-  width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center;
-  background: var(--u-s3); color: var(--u-ink-2); font: 700 11px var(--u-display);
-}
-.sx-steps-lbl .st.on {
-  background: var(--u-gold-soft); border-color: var(--lm-accent); color: var(--u-ink); font-weight: 700;
-}
-.sx-steps-lbl .st.on b { background: var(--lm-accent); color: #0B172A; }
-.sx-steps-lbl .st.done { border-color: rgba(76, 195, 138, .35); color: var(--u-ok); }
-.sx-steps-lbl .st.done b { background: var(--u-ok); color: #fff; }
+/* بطاقة SHEIN في الرئيسية */
+.lm-promo { position: relative; display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); width: 100%; margin: var(--s-5) 0 0; padding: var(--s-5); border: 0; border-radius: var(--rd-xl); text-align: start; color: #fff; cursor: pointer; overflow: hidden; background: radial-gradient(120% 140% at 0% 0%, rgba(120, 160, 230, .28) 0%, transparent 55%), linear-gradient(135deg, #0B172A 0%, #16305A 100%); box-shadow: 0 16px 34px -20px rgba(11, 23, 42, .7); }
+html[data-theme="dark"] .lm-promo { border: 1px solid rgba(255, 255, 255, .08); background: radial-gradient(120% 140% at 0% 0%, rgba(56, 189, 248, .2) 0%, transparent 55%), linear-gradient(135deg, #132238 0%, #1B3A66 100%); }
+.lm-promo-t { display: flex; flex-direction: column; gap: 6px; min-width: 0; position: relative; z-index: 1; }
+.lm-promo-t small { font-size: var(--fs-xs); color: rgba(255, 255, 255, .7); font-weight: 600; }
+.lm-promo-t b { font: 700 var(--fs-xl)/1.3 var(--font-ui); }
+.lm-promo-t > span { font-size: var(--fs-sm); color: rgba(255, 255, 255, .82); line-height: 1.6; }
+.lm-promo-t em { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; margin-top: var(--s-2); padding: 9px 16px; border-radius: 99px; background: #fff; color: #0B172A; font: 700 var(--fs-sm) var(--font-ui); font-style: normal; }
+.lm-promo-ic { position: relative; flex: none; width: 76px; height: 76px; display: grid; place-items: center; border-radius: 22px; background: rgba(255, 255, 255, .1); border: 1px solid rgba(255, 255, 255, .14); color: #fff; }
+html .lm-promo-ic svg.ic { width: 36px !important; height: 36px !important; stroke-width: 1.5 !important; }
 
-.sx-grid { gap: var(--sp-3); }
-.sx-p { border-radius: 18px; }
-.sx-p .im { aspect-ratio: 1 / 1; }
-.sx-p .im img { object-fit: cover; }
-.sx-p .nm { padding: var(--sp-2) var(--sp-3) 0; min-height: 38px; color: var(--u-ink); font-weight: 600; }
-.sx-p .pr { padding: var(--sp-1) var(--sp-3) var(--sp-2); display: flex; align-items: baseline; justify-content: space-between; }
-.sx-p .pr small { color: var(--lm-sky); font-weight: 700; }
-.sx-p .qt { padding: 0 var(--sp-3) var(--sp-3); gap: var(--sp-2); }
+/* صفحة المنتج (مثل Fortnite) */
+.kprod .kp-hero { position: relative; height: 200px; margin: 0; border-radius: var(--rd-xl); overflow: hidden; background: #0B172A; }
+.kprod .kp-bg { position: absolute; inset: 0; background-size: cover; background-position: center; transform: scale(1.04); filter: saturate(1.05); }
+.kprod .kp-fade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(11, 23, 42, .05) 0%, rgba(11, 23, 42, .15) 45%, rgba(11, 23, 42, .78) 100%); }
+.kprod .kp-info { position: relative; display: flex; align-items: center; gap: var(--s-3); margin: -46px var(--s-1) var(--s-3); padding: var(--s-3) var(--s-4); background: var(--lm-card); border: 1px solid var(--u-line); border-radius: var(--rd-lg); box-shadow: var(--u-shadow); }
+.kprod .kp-ic { width: 64px; height: 64px; flex: none; border-radius: 18px; overflow: hidden; display: grid; place-items: center; background: var(--u-s2); border: 1px solid var(--u-line); }
+.kprod .kp-ic img { width: 100%; height: 100%; object-fit: cover; }
+.kprod .kp-info h1 { font: 700 var(--fs-xl)/1.3 var(--font-ui); margin: 0; }
+.kprod .kp-info > div > span { display: block; color: var(--u-ink-3); font-size: var(--fs-sm); margin-top: 2px; }
+.kprod .kp-badges { display: flex !important; flex-wrap: wrap; gap: var(--s-2); margin-bottom: var(--s-4); }
+.kprod .kp-badges > span { display: inline-flex !important; flex: 0 0 auto; width: auto !important; height: auto !important; min-height: 0 !important; align-items: center; gap: 6px; padding: 7px 12px !important; border-radius: 99px !important; background: var(--u-s2) !important; color: var(--u-ink-2) !important; border: 0 !important; box-shadow: none !important; font: 600 var(--fs-xs) var(--font-ui) !important; }
+.kprod .kp-badges > span.g { background: var(--u-ok-soft) !important; color: var(--u-ok) !important; }
+.kprod .kp-badges .ei-w { display: contents; }
+.kprod .kp-lbl { font: 700 var(--fs-md) var(--font-ui); margin: var(--s-5) 2px var(--s-3); color: var(--u-ink); }
+.kprod .kpk { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3); }
+.kprod .kpkc { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: var(--s-4); background: var(--lm-card); border: 1.5px solid var(--u-line); border-radius: var(--rd-lg); text-align: start; color: var(--u-ink); cursor: pointer; }
+.kprod .kpkc b { font: 600 var(--fs-sm) var(--font-ui); color: var(--u-ink-2); }
+.kprod .kpkc .p { font: 800 var(--fs-lg)/1.2 var(--font-ui); color: var(--u-ink); }
+.kprod .kpkc .u { font-size: var(--fs-xs); color: var(--u-ink-3); }
+.kprod .kpkc.on { border-color: var(--lm-accent); background: var(--u-gold-soft); box-shadow: 0 0 0 3px var(--u-gold-soft); transform: scale(1.015); }
+.kprod .kpkc.on::after { content: ""; position: absolute; top: 12px; inset-inline-end: 12px; width: 22px; height: 22px; border-radius: 50%; background: var(--lm-accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center/14px no-repeat; animation: sel-pop var(--dur-2) var(--ease-out) both; }
+html[data-theme="dark"] .kprod .kpkc.on::after { background-color: var(--lm-accent); }
+@keyframes sel-pop { from { transform: scale(0); } to { transform: scale(1); } }
+.kprod .kp-in { height: 52px; border-radius: var(--rd-md); font-size: var(--fs-md); }
+.kprod .kp-in:focus { border-color: var(--lm-accent) !important; box-shadow: var(--shadow-focus); }
+.kprod .kqty { display: inline-flex; align-items: center; gap: var(--s-4); padding: 4px; background: var(--u-s2); border-radius: var(--rd-md); }
+.kprod .kqty button { width: 44px; height: 44px; border-radius: var(--rd-sm); border: 0; background: var(--lm-card); color: var(--u-ink); font-size: 20px; cursor: pointer; box-shadow: var(--u-shadow); }
+.kprod .kqty button:disabled { opacity: .4; box-shadow: none; }
+.kprod .kqty b { min-width: 28px; text-align: center; font: 700 var(--fs-lg) var(--font-ui); }
+.kbuy { background: var(--lm-card) !important; border-top: 1px solid var(--u-line) !important; border-radius: var(--rd-xl) var(--rd-xl) 0 0 !important; box-shadow: 0 -14px 30px -18px rgba(11, 23, 42, .45) !important; padding: var(--s-3) var(--s-4) calc(var(--s-3) + env(safe-area-inset-bottom, 0px)) !important; }
+.kbuy-t { display: flex; flex-direction: column; }
+.kbuy-t span { font-size: var(--fs-xs); color: var(--u-ink-3); }
+.kbuy-t b { font: 800 var(--fs-xl)/1.2 var(--font-ui); color: var(--u-ink); animation: price-in var(--dur-2) var(--ease-out) both; }
+@keyframes price-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.kbuy-b { min-height: 52px; border-radius: var(--rd-md) !important; background: var(--u-gold-fill) !important; color: var(--u-on-gold) !important; font: 700 var(--fs-md) var(--font-ui) !important; border: 0 !important; }
+.kbuy-b:disabled { opacity: .5; }
 
-.sx-save {
-  display: flex; align-items: center; justify-content: center; gap: var(--sp-2);
-  padding: var(--sp-3) var(--sp-4); margin-bottom: var(--sp-3);
-  border-radius: 16px; background: var(--u-ok-soft); border: 1px solid rgba(76, 195, 138, .35);
-  color: var(--u-ok); font: 700 13.5px var(--u-text); text-align: center;
+/* البانرات */
+.bn-wrap { border-radius: var(--rd-xl); overflow: hidden; box-shadow: var(--u-shadow); }
+.bn-title { font: 700 var(--fs-lg) var(--font-ui); }
+.bn-dots i { transition: width var(--dur-2) var(--ease-out), background-color var(--dur-2); }
+.bn-dots i.on { width: 20px; border-radius: 4px; }
+
+/* حركة إضافة منتج في سلة SHEIN */
+.sx-p { transition: transform var(--dur-2) var(--ease-out), box-shadow var(--dur-2) var(--ease-out), border-color var(--dur-2); }
+.sx-p.bump { animation: sx-bump 420ms var(--ease-out); }
+.sx-p.dip { animation: sx-dip 300ms var(--ease-out); }
+@keyframes sx-bump { 0% { transform: scale(1); } 35% { transform: scale(1.035); box-shadow: 0 0 0 3px var(--u-gold-soft), 0 14px 28px -16px rgba(11, 23, 42, .4); border-color: var(--lm-accent); } 100% { transform: scale(1); } }
+@keyframes sx-dip { 50% { transform: scale(.975); } }
+.sx-p .qt b { display: inline-block; }
+.sx-p.bump .qt b { animation: pop-num 360ms var(--ease-out); }
+@keyframes pop-num { 0% { transform: scale(1); } 40% { transform: scale(1.4); } 100% { transform: scale(1); } }
+#shNext.pop { animation: cta-pop 360ms var(--ease-out); }
+@keyframes cta-pop { 40% { transform: scale(1.025); } }
+
+/* حالات الأزرار */
+.btn:disabled, button:disabled { cursor: not-allowed; }
+.btn.loading, button.loading { position: relative; color: transparent !important; pointer-events: none; }
+.btn.loading::after, button.loading::after { content: ""; position: absolute; width: 18px; height: 18px; inset: 0; margin: auto; border-radius: 50%; border: 2px solid currentColor; border-color: var(--u-on-gold) transparent var(--u-on-gold) transparent; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* تقليل الحركة */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+  .rv:not(.rv-in) { opacity: 1; transform: none; }
 }
-
-/* صقل صفحة حسابي / الإعدادات بمسافات 16px موحدة */
-.st-prof { padding: var(--sp-4); gap: var(--sp-3); border-radius: 20px; }
-.st-g { border-radius: 20px; }
-.st-r { padding: var(--sp-4); gap: var(--sp-3); }
-.st-gh { margin: var(--sp-5) var(--sp-2) var(--sp-2); }
-

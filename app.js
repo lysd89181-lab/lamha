@@ -313,6 +313,85 @@ const I = {
 };
 const svg = (d, w = 1.8) => `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 
+/* ═══ أيقونات SVG بدل الإيموجي (مجموعة واحدة بنمط Lucide: خط 1.8، حواف مستديرة) ═══ */
+const EI = {
+  gift: '<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/>',
+  zap: '<path d="M13 2 3 14h9l-1 8 10-12h-9z"/>',
+  lock: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  flame: '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1-2.1-.2-4 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.2.4-2.3 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
+  bag: '<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  box: '<path d="m7.5 4.3 9 5.2"/><path d="M21 8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.7z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>',
+  card: '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>',
+  bank: '<path d="M3 22h18"/><path d="M6 18v-7M10 18v-7M14 18v-7M18 18v-7"/><path d="m12 2 9 5H3z"/>',
+  wrench: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9z"/>',
+  dot: '<circle cx="12" cy="12" r="5" fill="currentColor"/>',
+  sparkles: '<path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z"/>',
+  rocket: '<path d="M4.5 16.5c-1.5 1.3-2 5-2 5s3.7-.5 5-2c.7-.8.7-2.1-.1-2.9a2.2 2.2 0 0 0-2.9-.1z"/><path d="m12 15-3-3a22 22 0 0 1 2-4A13 13 0 0 1 22 2c0 2.7-.8 7.5-6 11a22 22 0 0 1-4 2z"/><path d="M9 12H4s.6-3 2-4c1.6-1.1 5 0 5 0"/><path d="M12 15v5s3-.6 4-2c1.1-1.6 0-5 0-5"/>',
+  chat: '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22z"/>',
+  shield: '<path d="M12 2.5 4 6v6c0 5 3.4 8.6 8 9.5 4.6-.9 8-4.5 8-9.5V6z"/>',
+  clip: '<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>',
+  warn: '<path d="m21.7 18-8-14a2 2 0 0 0-3.5 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3z"/><path d="M12 9v4M12 17h.01"/>',
+  ban: '<circle cx="12" cy="12" r="9"/><path d="m5.7 5.7 12.6 12.6"/>',
+  okc: '<circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  star: '<path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8-6.2-3.3-6.2 3.3L7 14.2 2 9.3l6.9-1z" fill="currentColor"/>',
+  star0: '<path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8-6.2-3.3-6.2 3.3L7 14.2 2 9.3l6.9-1z"/>',
+  receipt: '<path d="M4 2v20l3-2 2 2 3-2 3 2 2-2 3 2V2l-3 2-2-2-3 2-3-2-2 2z"/><path d="M8 8h8M8 12h8M8 16h5"/>',
+  coin: '<circle cx="12" cy="12" r="9"/><path d="M15 9.5a3 3 0 0 0-3-1.5c-1.7 0-3 .9-3 2.2 0 3 6 1.6 6 4.6 0 1.3-1.3 2.200-3 2.200a3.300 3.300 0 0 1-3-1.500M12 6v2M12 16v2"/>',
+  bell: '<path d="M18 8.500a6 6 0 1 0-12 0c0 6-2.500 7.500-2.500 7.500h17S18 14.500 18 8.500"/><path d="M13.700 20a2 2 0 0 1-3.400 0"/>',
+  moon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/>',
+  pin: '<path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/>',
+  crown: '<path d="m2 4 3 12h14l3-12-6 5-4-7-4 7z"/><path d="M5 20h14"/>',
+  medal: '<circle cx="12" cy="15" r="6"/><path d="M8.200 3 12 9l3.800-6"/>',
+  camera: '<path d="M14.500 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3"/>',
+  gear: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.900 4.900 7 7M17 17l2.100 2.100M2 12h3M19 12h3M4.900 19.100 7 17M17 7l2.100-2.100"/>',
+  pen: '<path d="M12 20h9"/><path d="M16.500 3.500a2.100 2.100 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+  link: '<path d="M10 13a5 5 0 0 0 7.500.5l3-3a5 5 0 0 0-7-7l-1.700 1.700"/><path d="M14 11a5 5 0 0 0-7.500-.5l-3 3a5 5 0 0 0 7 7l1.700-1.700"/>',
+  search: '<circle cx="11" cy="11" r="7"/><path d="m21 21-4.300-4.300"/>',
+  snow: '<path d="M2 12h20M12 2v20M4.900 4.900l14.200 14.200M19.100 4.900 4.900 19.100"/>',
+  flag: '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/>',
+  wallet: '<path d="M19 7V5.500A1.500 1.500 0 0 0 17.500 4H5a2 2 0 0 0 0 4h14a1 1 0 0 1 1 1v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6"/><path d="M16.500 14h.010"/>',
+  game: '<path d="M6 12h4M8 10v4"/><path d="M15 13h.01M18 11h.01"/><rect x="2" y="6" width="20" height="12" rx="4"/>',
+};
+const EMO_MAP = { '🎁': 'gift', '⚡': 'zap', '🔒': 'lock', '🔥': 'flame', '🛍': 'bag', '🏪': 'bag', '⏱': 'clock', '🕒': 'clock', '🕐': 'clock', '📦': 'box', '💳': 'card', '🏦': 'bank', '🛠': 'wrench', '🎉': 'sparkles', '👏': 'sparkles', '🌟': 'sparkles', '🚀': 'rocket', '💬': 'chat', '🛡': 'shield', '📋': 'clip', '⚠': 'warn', '🚫': 'ban', '⛔': 'ban', '✅': 'okc', '✓': 'check', '★': 'star', '⭐': 'star', '☆': 'star0', '🧾': 'receipt', '💲': 'coin', '💰': 'wallet', '🔔': 'bell', '🌙': 'moon', '📍': 'pin', '👑': 'crown', '🥇': 'medal', '🥈': 'medal', '📷': 'camera', '⚙': 'gear', '✍': 'pen', '🔗': 'link', '🔎': 'search', '❄': 'snow', '⚑': 'flag', '🎮': 'game', '🔴': 'dot:#E34D59', '🟢': 'dot:#16B889', '🟡': 'dot:#E8A23B' };
+const EMO_RE = new RegExp('(' + Object.keys(EMO_MAP).join('|') + ')\\uFE0F?', 'g');
+function emoSvg(k) {
+  const [n, col] = EMO_MAP[k].split(':');
+  return `<span class="ei" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"${col ? ` style="color:${col}"` : ''}>${EI[n]}</svg></span>`;
+}
+function emojiToIcons(root) {
+  if (!root || !root.nodeType) return;
+  const w = document.createTreeWalker(root.nodeType === 1 ? root : document.body, NodeFilter.SHOW_TEXT, { acceptNode: n => { const pt = n.parentNode && n.parentNode.nodeName; return pt && !/^(SCRIPT|STYLE|TEXTAREA|OPTION|TITLE|INPUT|NOSCRIPT)$/.test(pt) && EMO_RE.test(n.nodeValue) && !(EMO_RE.lastIndex = 0) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; } });
+  const hits = []; let nd; while ((nd = w.nextNode())) hits.push(nd);
+  hits.forEach(n => {
+    const html = esc(n.nodeValue).replace(EMO_RE, (m, k) => emoSvg(k));
+    const s = document.createElement('span'); s.className = 'ei-w'; s.innerHTML = html; n.replaceWith(s);
+  });
+}
+(function initEmojiIcons() {
+  if (typeof MutationObserver === 'undefined') return;
+  let q = new Set(), raf = 0;
+  const flush = () => { raf = 0; const items = [...q]; q = new Set(); items.forEach(el => { if (el.isConnected) emojiToIcons(el); }); };
+  new MutationObserver(ms => { ms.forEach(m => m.addedNodes.forEach(n => { if (n.nodeType === 1 && !(n.classList && (n.classList.contains('ei') || n.classList.contains('ei-w')))) q.add(n); else if (n.nodeType === 3 && n.parentNode) q.add(n.parentNode); })); if (!raf && q.size) raf = requestAnimationFrame(flush); }).observe(document.documentElement, { childList: true, subtree: true });
+  document.addEventListener('DOMContentLoaded', () => emojiToIcons(document.body));
+})();
+
+/* ═══ ظهور العناصر تدريجيًا أثناء التمرير (يحترم تقليل الحركة) ═══ */
+const RV_SEL = '.lm-prod, .lm-cats button, .lm-info-i, .lm-row, .sx-p, .kcard, .kpkc, .st-g, .kset, .kwal, .balance-action, .lm-sec, .sx-sum, .sx-opt, .krow > *';
+(function initReveal() {
+  if (typeof IntersectionObserver === 'undefined' || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('rv-in'); io.unobserve(e.target); } }), { rootMargin: '0px 0px -6% 0px', threshold: .06 });
+  const run = () => {
+    const els = [...document.querySelectorAll('#view ' + RV_SEL.split(', ').join(', #view '))].filter(e => !e.classList.contains('rv'));
+    els.forEach((e, i) => { e.classList.add('rv'); e.style.setProperty('--rv-d', Math.min(i % 9, 8) * 35 + 'ms'); io.observe(e); });
+    setTimeout(() => document.querySelectorAll('.rv:not(.rv-in)').forEach(e => e.classList.add('rv-in')), 1400);
+  };
+  let tm = 0; const kick = () => { clearTimeout(tm); tm = setTimeout(run, 30); };
+  const start = () => { const v = document.getElementById('view'); if (v) new MutationObserver(kick).observe(v, { childList: true }); kick(); };
+  if (document.readyState !== 'loading') start(); else document.addEventListener('DOMContentLoaded', start);
+})();
+
 /* ═══ UI Helpers ═══ */
 const setHTML = (sel, html) => { const el = $(sel); if (el) el.innerHTML = html; };
 const onTap = (sel, fn) => { const el = $(sel); if (el) el.onclick = fn; };
@@ -776,10 +855,7 @@ let _lastPage = null, _lastHtml = '';
 function lmProd(c) {
   const p = rscNameParts(c.name), min = c.offers && c.offers.length ? c.offers[0].price : 0;
   const price = min > 0 ? (wDef() === 'usd' ? lyd(min * rate()) : wFmt(wPrice(min))) : '';
-  const tag = c.maint ? 'صيانة' : c.promo ? esc(c.promo.slice(0, 14)) : '⚡ فوري';
-  return `<button class="lm-prod${c.maint ? ' off' : ''}" data-rsccat="${esc(c.key)}" type="button">
-    <span class="lm-prod-i">${rscImgTag(c)}<i class="lm-prod-tag">${tag}</i></span>
-    <span class="lm-prod-body"><b dir="auto">${p.cc ? p.flag + ' ' : ''}${esc(p.title)}</b>${price ? `<span class="lm-prod-p tabular">من ${esc(price)}</span>` : ''}</span></button>`;
+  return `<button class="lm-prod${c.maint ? ' off' : ''}" data-rsccat="${esc(c.key)}" type="button"><span class="lm-prod-i">${rscImgTag(c)}</span><b dir="auto">${esc(p.title)}</b>${price ? `<span class="lm-prod-p tabular">${esc(price)}</span>` : ''}</button>`;
 }
 const LM_CATS = [['gift', 'بطاقات عالمية', 'giftbox'], ['topup', 'شحن الألعاب', 'game'], ['subs', 'اشتراكات رقمية', 'paycard']];
 function vDashboard() {
@@ -803,6 +879,7 @@ function vDashboard() {
     ${on && st.s === 'maint' ? `<div class="ksec-note">${svg(I.help)}<div><b>المتجر قيد الصيانة</b><span>${esc(st.msg || 'نرجعوا قريب إن شاء الله')}</span></div></div>` : ''}
     ${on && st.s !== 'maint' ? `
     <div class="lm-cats">${LM_CATS.map(([k, t, ic]) => `<button data-rscgo="${k}" type="button"><span>${svg(I[ic])}</span>${t}</button>`).join('')}</div>
+    ${S.config.shein ? `<button class="lm-promo" data-nav="shein" type="button"><span class="lm-promo-t"><small>تسوّق من العالم وادفع بالدينار</small><b>لقيت اللي تبيه في SHEIN؟</b><span>حط رابط سلتك، واحصل على السعر بالدينار الليبي قبل ما تطلب.</span><em>احسب سعر طلبك ${svg(I.back, 2)}</em></span><span class="lm-promo-ic">${svg(EI.bag)}</span></button>` : ''}
     <div class="lm-sec"><h2>منتجات مميزة</h2><button data-rscgo="all" type="button">عرض الكل ${svg(I.back, 2)}</button></div>
     ${!S.rsc.loaded && !S.rsc.error ? `<div class="lm-grid">${'<div class="skeleton" style="height:122px;border-radius:16px"></div>'.repeat(6)}</div>` : ''}
     ${S.rsc.error && !S.rsc.loaded ? `<div class="card" style="text-align:center;padding:24px 18px"><div class="h4 mb-3">تعذّر تحميل المتجر</div><button class="btn btn-primary" data-rscretry type="button">إعادة المحاولة</button></div>` : ''}
@@ -5808,16 +5885,15 @@ function sheinTile() {
     <span style="flex:1"><b>اطلب من SHEIN بالدينار</b><br><span class="caption">الصق رابط سلتك ونحسبلك السعر</span></span><span aria-hidden="true">←</span></button>`;
 }
 function shCalc() {
-  const q = shState().q; let goods = 0, usdSum = 0, retailGoods = 0;
-  q.items.forEach(it => { const n = S.sh.qty[it.i] || 0, u = it.variants ? it.variants[S.sh.pick[it.i] || 0] : it; if (n && it.avail && u) { const rPrice = Math.max(Number(u.retail || it.retail || u.sale) || u.sale, u.sale); goods = Math.round((goods + Math.round(u.sale * n * q.rate * 100) / 100) * 100) / 100; retailGoods = Math.round((retailGoods + Math.round(rPrice * n * q.rate * 100) / 100) * 100) / 100; usdSum = Math.round((usdSum + u.sale * n) * 100) / 100; } });
-  const commission = Math.round(goods * q.commission_pct) / 100, total = Math.round((goods + commission) * 100) / 100, saved = Math.max(0, Math.round((retailGoods - goods) * 100) / 100);
-  return { goods, usd: usdSum, commission, total, saved, deposit: total > 0 ? Math.min(total, Math.ceil(total * q.deposit_pct / 100)) : 0, count: q.items.reduce((a, it) => a + (it.avail ? (S.sh.qty[it.i] || 0) : 0), 0) };
+  const q = shState().q; let goods = 0, usdSum = 0;
+  q.items.forEach(it => { const n = S.sh.qty[it.i] || 0, u = it.variants ? it.variants[S.sh.pick[it.i] || 0] : it; if (n && it.avail && u) { goods = Math.round((goods + Math.round(u.sale * n * q.rate * 100) / 100) * 100) / 100; usdSum = Math.round((usdSum + u.sale * n) * 100) / 100; } });
+  const commission = Math.round(goods * q.commission_pct) / 100, total = Math.round((goods + commission) * 100) / 100;
+  return { goods, usd: usdSum, commission, total, deposit: total > 0 ? Math.min(total, Math.ceil(total * q.deposit_pct / 100)) : 0, count: q.items.reduce((a, it) => a + (it.avail ? (S.sh.qty[it.i] || 0) : 0), 0) };
 }
 const shUsd = x => '$' + (Math.round(Number(x) * 100) / 100).toFixed(2);
 const shTimerText = ms => { const t = Math.max(0, Math.floor(ms / 1000)); return String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0'); };
 const SH_STEPS = ['items', 'sum', 'confirm', 'pay'];
-const SH_STEP_NAMES = { items: 'السلة', sum: 'الملخص', confirm: 'التأكيد', pay: 'الدفع' };
-const shBar = s => `<div class="sx-steps-lbl" aria-label="خطوات الطلب">${SH_STEPS.map((k, i) => `<span class="st ${i < SH_STEPS.indexOf(s) ? 'done' : k === s ? 'on' : ''}"><b>${i < SH_STEPS.indexOf(s) ? '✓' : i + 1}</b><span>${SH_STEP_NAMES[k]}</span></span>`).join('')}</div>`;
+const shBar = s => `<div class="sx-steps" aria-hidden="true">${SH_STEPS.map((k, i) => `<i class="${i < SH_STEPS.indexOf(s) ? 'done' : k === s ? 'on' : ''}"></i>`).join('')}</div>`;
 const shTop = t => `<div class="ktop"><button class="ktop-back" data-shback type="button" aria-label="رجوع">${svg(I.next)}</button><h1 class="ktop-t" dir="auto">${esc(t)}</h1><span class="ktop-sp"></span></div>`;
 const shTimerEl = q => `<div style="text-align:center;margin-bottom:12px"><span class="sx-timer" id="shTimer" role="timer">⏱ ${shTimerText(q.exp - Date.now())} لتأكيد السعر</span></div>`;
 const shHead2 = '<h1 class="lm-title">تسوق من SHEIN</h1><p class="lm-sub">اكتشف أحدث المنتجات</p>';
@@ -5875,7 +5951,6 @@ function vSheinPage() {
   }
   if (step === 'sum') {
     return `<div class="page-enter lm-page">${shTop('ملخص الطلب')}${shBar('sum')}${shTimerEl(q)}
-      ${t.saved > 0 ? `<div class="sx-save">🎉 وفّرت <span class="tabular">${shM(t.saved)}</span> مقارنة بالسعر الأصلي!</div>` : ''}
       <div class="sx-sum">
         <div><span>عدد القطع</span><b class="tabular">${t.count}</b></div>
         <div><span>قيمة المنتجات</span><span class="tabular"><b>${shUsd(t.usd)}</b> · ${shM(t.goods)}</span></div>
@@ -5977,7 +6052,7 @@ function bindShein() {
   $$('[data-shtab]').forEach(b => b.onclick = () => { sh.tab = b.dataset.shtab; if (sh.tab === 'list') sh.orders = null; render(); });
   $$('[data-shopen]').forEach(b => b.onclick = () => shOrder(b.dataset.shopen));
   $$('[data-shv]').forEach(x => x.onchange = () => { sh.pick[Number(x.dataset.shv)] = Number(x.value); render(); });
-  $$('[data-shq]').forEach(b => b.onclick = () => { const [i, d] = b.dataset.shq.split(':').map(Number); sh.qty[i] = Math.max(0, Math.min(20, (sh.qty[i] || 0) + d)); render(); });
+  $$('[data-shq]').forEach(b => b.onclick = () => { const [i, d] = b.dataset.shq.split(':').map(Number); sh.qty[i] = Math.max(0, Math.min(20, (sh.qty[i] || 0) + d)); render(); const c = document.querySelector(`[data-shq="${i}:1"]`), card = c && c.closest('.sx-p'); if (card) { card.classList.add(d > 0 ? 'bump' : 'dip'); setTimeout(() => card.classList.remove('bump', 'dip'), 420); if (d > 0) haptic.ok && haptic.ok(); } const nx = $('#shNext'); if (nx) { nx.classList.add('pop'); setTimeout(() => nx.classList.remove('pop'), 360); } });
   onTap('#shPayGo', () => {
     const t = shCalc(), mode = $('.sx-opt.on') ? $('.sx-opt.on').dataset.shmode : 'wallet';
     if (mode === 'ezone') {
