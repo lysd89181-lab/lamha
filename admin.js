@@ -6176,9 +6176,21 @@ const SHA_FLOW = { new: ['purchasing', 'بدء الشراء'], purchasing: ['pur
 const shaM = x => (Math.round(Number(x) * 100) / 100).toFixed(2) + ' د.ل';
 async function shaLoad(force) {
   if (S.shaBusy && !force) return; S.shaBusy = true;
-  try { const [l, c] = await Promise.all([api('/api/admin/shein', { action: 'list', status: S.shaF || 'all' }), api('/api/admin/shein', { action: 'cfg' })]); S.shaList = l.list; S.shaCfg = c; }
+  try { const [l, c, st] = await Promise.all([api('/api/admin/shein', { action: 'list', status: S.shaF || 'all' }), api('/api/admin/shein', { action: 'cfg' }), api('/api/admin/shein', { action: 'stats' }).catch(() => null)]); S.shaList = l.list; S.shaCfg = c; S.shaStats = st && st.stats; }
   catch (e) { toast(e.message, 'bad'); S.shaList = S.shaList || []; }
   S.shaBusy = false; render(true);
+}
+const SHA_PV = { omkar: 'Omkar', direct: 'مباشر (تجريبي)', apify: 'Apify (منتجات)' };
+const shaMs = v => v == null ? '—' : v >= 1000 ? (v / 1000).toFixed(1) + ' ث' : v + ' م.ث';
+function shaStatsHtml() {
+  const st = S.shaStats, src = S.shaCfg && S.shaCfg.cart_src;
+  const rows = st ? Object.keys(SHA_PV).filter(k => st[k]).map(k => { const x = st[k];
+    return `<tr><td><b>${esc(SHA_PV[k])}</b>${k === src || (src === 'auto' && k !== 'apify') ? ' <span class="caption">●</span>' : ''}</td><td class="tabular">${x.n}</td><td class="tabular" style="color:var(--${x.rate >= 80 ? 'ok' : x.rate >= 50 ? 'warn' : 'err'})">${x.rate}%</td><td class="tabular">${shaMs(x.avg)}</td><td class="tabular">${shaMs(x.p50)}</td><td class="tabular">${shaMs(x.p95)}</td></tr>`; }).join('') : '';
+  const last = st ? Object.keys(SHA_PV).filter(k => st[k]).flatMap(k => st[k].last.map(s => ({ ...s, k }))).sort((a, b) => b.t - a.t).slice(0, 8) : [];
+  return `<details class="card card-sm mb-3" open><summary><b>مراقبة الجلب</b> <span class="caption">سرعة ونجاح كل مزود (آخر 100 محاولة)</span></summary>
+    ${rows ? `<div style="overflow-x:auto;margin-top:8px"><table style="width:100%;font-size:12.5px;border-collapse:collapse"><thead><tr class="caption"><th style="text-align:start">المزود</th><th>العدد</th><th>النجاح</th><th>المتوسط</th><th>الوسيط</th><th>الأبطأ 95%</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="caption" style="margin-top:8px">آخر المحاولات:</div>${last.map(s => `<div class="caption" dir="auto">${s.ok ? '✅' : '❌'} ${esc(SHA_PV[s.k])} · ${shaMs(s.ms)} · ${esc(dt(new Date(s.t).toISOString()))}${s.ok ? '' : ' — ' + esc(s.why || 'فشل')}</div>`).join('')}` : '<div class="caption" style="margin-top:8px">ما في بيانات بعد — جرّب جلب سلة من التطبيق.</div>'}
+    <div style="display:flex;gap:6px;margin-top:8px"><button class="btn btn-secondary btn-sm" data-shastat="refresh" type="button">تحديث</button><button class="btn btn-secondary btn-sm" data-shastat="reset" type="button">تصفير الأرقام</button></div></details>`;
 }
 function vShein() {
   if (S.shaList === undefined) { S.shaList = null; shaLoad(); }
@@ -6190,9 +6202,12 @@ function vShein() {
       <div style="display:flex;gap:6px;margin:8px 0"><input class="input" id="shaKey" type="password" dir="ltr" autocomplete="off" placeholder="مفتاح Omkar (السلة المشتركة)" style="flex:1"><button class="btn btn-primary btn-sm" data-shakey="omkar" type="button">حفظ</button></div>
       <div style="display:flex;gap:6px;margin:8px 0"><input class="input" id="shaKey2" type="password" dir="ltr" autocomplete="off" placeholder="مفتاح Apify (روابط المنتجات)" style="flex:1"><button class="btn btn-primary btn-sm" data-shakey="apify" type="button">حفظ</button></div>
       <label style="display:block;margin-bottom:6px">المزود<select class="input" id="shaProv"><option value="auto" ${c.provider === 'auto' ? 'selected' : ''}>تلقائي (سلة ← Omkar، منتجات ← Apify)</option><option value="omkar" ${c.provider === 'omkar' ? 'selected' : ''}>Omkar فقط</option><option value="apify" ${c.provider === 'apify' ? 'selected' : ''}>Apify فقط</option></select></label>
+      <label style="display:block;margin-bottom:6px">مصدر جلب السلة<select class="input" id="shaSrc"><option value="omkar" ${c.cart_src === 'omkar' ? 'selected' : ''}>Omkar (الأساسي، مستقر)</option><option value="direct" ${c.cart_src === 'direct' ? 'selected' : ''}>مباشر من SHEIN (تجريبي)</option><option value="auto" ${c.cart_src === 'auto' ? 'selected' : ''}>تلقائي: المباشر أولًا ثم Omkar احتياطيًا</option></select></label>
+      <div class="caption" style="margin-bottom:6px">المباشر تجريبي ولم يُختبر على سلال حقيقية بعد. غيّر المصدر ثم قارن الأرقام في بطاقة «مراقبة الجلب» أدناه.</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><label>سعر الصرف (دينار لكل دولار)<input class="input tabular" id="shaRate" type="number" step="0.01" value="${c.rate}"></label><label>عمولة لمحة %<input class="input tabular" id="shaCom" type="number" step="0.1" value="${c.commission_pct}"></label>
         <label>سعر الكيلو (د.ل)<input class="input tabular" id="shaKg" type="number" step="0.5" value="${c.kg_lyd}"></label><label>العربون %<input class="input tabular" id="shaDep" type="number" min="0" max="100" value="${c.deposit_pct}"></label></div>
       <label style="display:flex;gap:8px;align-items:center;margin:8px 0"><input type="checkbox" id="shaOn" ${c.on ? 'checked' : ''}> تفعيل القسم للزبائن</label><button class="btn btn-secondary btn-sm" data-shasave type="button">حفظ الإعدادات</button></div></details>` : ''}
+    ${shaStatsHtml()}
     <div class="pills mb-3">${F.map(([k, t]) => `<button class="pill ${cur === k ? 'active' : ''}" data-shaf="${k}" type="button">${esc(t)}</button>`).join('')}</div>
     ${S.shaList === null ? '<div class="skeleton" style="height:70px;border-radius:12px"></div>' : S.shaList.length ? `<div class="list">${S.shaList.map(o => `<div class="list-row" data-shaopen="${esc(o.id)}"><div class="list-content"><div class="list-title tabular" dir="ltr">${esc(o.id)}</div><div class="list-meta">${esc(userName(o.uid))} · ${esc(String(o.count))} قطعة · ${shaM(o.total_lyd)} · ${esc(dt(o.created_at))}</div></div><span class="badge badge-muted">${esc(o.status_ar)}</span></div>`).join('')}</div>` : '<div class="caption">لا توجد طلبات</div>'}</div>`;
 }
@@ -6218,11 +6233,12 @@ async function shaOpen(id) {
 document.addEventListener('click', async e => {
   const g = sel => e.target.closest && e.target.closest(sel); let el;
   const call = async (body, ok) => { try { await api('/api/admin/shein', body); toast(ok || 'تم ✓', 'ok'); return true; } catch (er) { toast(er.message, 'bad'); return false; } };
+  if ((el = g('[data-shastat]'))) { if (el.dataset.shastat === 'reset') { if (!confirm('تصفير إحصاءات الجلب؟')) return; await call({ action: 'stats_reset' }, 'تم التصفير ✓'); } return shaLoad(true); }
   if ((el = g('[data-shaf]'))) { S.shaF = el.dataset.shaf; S.shaList = null; render(true); return shaLoad(true); }
   if ((el = g('[data-shaopen]'))) return shaOpen(el.dataset.shaopen);
   if ((el = g('[data-shakey]'))) { const w = el.dataset.shakey, i = $(w === 'apify' ? '#shaKey2' : '#shaKey'); if (await call({ action: 'set_key', which: w, key: i.value.trim() }, 'حُفظ المفتاح ✓')) { i.value = ''; shaLoad(true); } return; }
   if (g('[data-shasave]')) {
-    try { await api('/api/admin/settings', { shein_on: $('#shaOn').checked, shein_provider: $('#shaProv').value, shein_rate: n($('#shaRate').value), shein_commission_pct: n($('#shaCom').value), shein_kg_lyd: n($('#shaKg').value), shein_deposit_pct: n($('#shaDep').value) }); toast('حُفظ ✓', 'ok'); shaLoad(true); } catch (er) { toast(er.message, 'bad'); }
+    try { await api('/api/admin/settings', { shein_on: $('#shaOn').checked, shein_provider: $('#shaProv').value, shein_cart_src: $('#shaSrc').value, shein_rate: n($('#shaRate').value), shein_commission_pct: n($('#shaCom').value), shein_kg_lyd: n($('#shaKg').value), shein_deposit_pct: n($('#shaDep').value) }); toast('حُفظ ✓', 'ok'); shaLoad(true); } catch (er) { toast(er.message, 'bad'); }
     return;
   }
   if ((el = g('[data-shast]'))) { const [id, to] = el.dataset.shast.split(':'); if (await call({ action: 'status', id, to })) { closeModal(); shaLoad(true); } return; }

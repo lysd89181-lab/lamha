@@ -67,7 +67,7 @@ const DEFAULT_SETTINGS = {
   m_libyana_mode: '', m_almadar_mode: '', m_bank_receipt: true, m_binance_receipt: true,
   require_email_verify: true,
   plans_enabled: true, plan_free_cards: 1, plan_basic_cards: 3, plan_premium_cards: 6, plan_vip_cards: 0,
-  plan_premium_price: 10, plan_premium_days: 30, card_warning: '', card_points: '', otp_fee_usd: 0.03, kardo_store_on: false, shein_on: false, shein_provider: 'auto', shein_apify_actor: 'omkar-cloud~shein-product-scraper', shein_host: 'https://shein-scraper.omkar.cloud', shein_rate: 0, shein_commission_pct: 10, shein_kg_lyd: 60, shein_deposit_pct: 40, shein_quote_min: 30, shein_month_cap: 180, ezone_on: false, ezone_env: 'live', ezone_libyana_ids: '', ezone_bank_ids: '101,102,103,104,105,125,106,107,108,140,141,142,144', ezone_min: 5, ezone_max: 5000, ezone_expire_min: 30, kyc_pending_days: 120, kyc_retention_days: 365, kyc_rejected_days: 30, merchants_on: false, referral_cards_enabled: true, usdt_bep20_on: false, usdt_bep20_address: '', usdt_polygon_on: false, usdt_polygon_address: '', binance_pay_on: false, binance_pay_id: '', require_phone_verified: false, sms_sender_exact: true, sms_auto_max_lyd: 100, admin_reauth_hours: 12, quota_save_at: 25000, merchant_free_days: 30, merchant_default_pct: 5, pv_amount_lyd: 1, require_verified_money: true, card_types: [], referral_card_inviter: 1, referral_card_invitee: 0.2, referral_store_enabled: false,
+  plan_premium_price: 10, plan_premium_days: 30, card_warning: '', card_points: '', otp_fee_usd: 0.03, kardo_store_on: false, shein_on: false, shein_provider: 'auto', shein_cart_src: 'omkar', shein_apify_actor: 'omkar-cloud~shein-product-scraper', shein_host: 'https://shein-scraper.omkar.cloud', shein_rate: 0, shein_commission_pct: 10, shein_kg_lyd: 60, shein_deposit_pct: 40, shein_quote_min: 30, shein_month_cap: 180, ezone_on: false, ezone_env: 'live', ezone_libyana_ids: '', ezone_bank_ids: '101,102,103,104,105,125,106,107,108,140,141,142,144', ezone_min: 5, ezone_max: 5000, ezone_expire_min: 30, kyc_pending_days: 120, kyc_retention_days: 365, kyc_rejected_days: 30, merchants_on: false, referral_cards_enabled: true, usdt_bep20_on: false, usdt_bep20_address: '', usdt_polygon_on: false, usdt_polygon_address: '', binance_pay_on: false, binance_pay_id: '', require_phone_verified: false, sms_sender_exact: true, sms_auto_max_lyd: 100, admin_reauth_hours: 12, quota_save_at: 25000, merchant_free_days: 30, merchant_default_pct: 5, pv_amount_lyd: 1, require_verified_money: true, card_types: [], referral_card_inviter: 1, referral_card_invitee: 0.2, referral_store_enabled: false,
   plan_basic_price: 5, plan_basic_days: 30, plan_vip_price: 15, plan_vip_days: 30,
   // v62 — محافظ منفصلة لكل طريقة دفع: نسبة ربح ولون لكل محفظة، وحدود لكل طريقة (بعملتها)، وصورة لكل شبكة
   wallets_on: true, wallet_unified: false, wallet_target: 'bk', wallet_target_locked: false,
@@ -214,6 +214,7 @@ async function route(path, request, url, env) {
     case '/api/ezone/methods':         return handleEzoneMethods(user, body, env);
     case '/api/admin/ezone':           return handleAdminEzone(user, body, env);
     case '/api/shein/quote':           return handleSheinQuote(user, body, env);
+    case '/api/shein/stage':           return handleSheinStage(user, body, env);
     case '/api/shein/order':           return handleSheinOrder(user, body, env);
     case '/api/shein/list':            return handleSheinList(user, body, env);
     case '/api/shein/get':             return handleSheinGet(user, body, env);
@@ -10224,16 +10225,94 @@ async function shProvApify(env, s, input) {
   if (!items.length) throw httpError(400, 'ما لقيناش المنتجات — تأكد من روابط المنتجات');
   return { items };
 }
-// المزود: auto = السلة عبر Omkar وروابط المنتجات عبر Apify. (Apify ما يقبلش رابط سلة، وOmkar ما يقبلش رابط منتج)
-async function shFetch(env, s, input) {
+// ===== مراقبة الأداء (KV) وتتبّع مراحل الجلب =====
+const SH_STAT_KEY = 'shm:v1', shWhy = (st, why, msg) => Object.assign(httpError(st, msg || 'تعذّر جلب السلة — حاول بعد قليل'), { why });
+async function shStat(env, prov, ok, ms, why) {
+  try {
+    const d = (await env.KV.get(SH_STAT_KEY, 'json').catch(() => null)) || {}, p = d[prov] = d[prov] || { n: 0, ok: 0, s: [] };
+    p.n++; if (ok) p.ok++; p.s.push({ t: Date.now(), ms: Math.round(ms), ok: !!ok, why: String(why || '').slice(0, 60) }); if (p.s.length > 100) p.s = p.s.slice(-100);
+    await env.KV.put(SH_STAT_KEY, JSON.stringify(d));
+  } catch {}
+}
+function shStatView(d) {
+  const pc = (a, q) => a.length ? a[Math.min(a.length - 1, Math.floor(a.length * q))] : null, out = {};
+  for (const k of ['omkar', 'direct', 'apify']) {
+    const p = d && d[k]; if (!p) continue;
+    const okMs = p.s.filter(x => x.ok).map(x => x.ms).sort((x, y) => x - y), recent = p.s.slice(-100), lastErr = [...p.s].reverse().find(x => !x.ok);
+    out[k] = { n: p.n, ok: p.ok, rate: p.n ? Math.round(p.ok / p.n * 100) : 0, avg: okMs.length ? Math.round(okMs.reduce((a, b) => a + b, 0) / okMs.length) : null, p50: pc(okMs, .5), p95: pc(okMs, .95), win_n: recent.length, win_rate: recent.length ? Math.round(recent.filter(x => x.ok).length / recent.length * 100) : 0, last_err: lastErr ? { why: lastErr.why, t: lastErr.t } : null, last: p.s.slice(-8).reverse() };
+  }
+  return out;
+}
+async function shStage(env, uid, job, st) { if (!job) return; try { await env.KV.put(`shs:${uid}:${job}`, st, { expirationTtl: 120 }); } catch {} }
+async function handleSheinStage(user, body, env) {
+  const job = String(body && body.job || '');
+  if (!/^[a-z0-9]{8,24}$/.test(job)) return { success: true, stage: '' };
+  return { success: true, stage: (await env.KV.get(`shs:${user.uid}:${job}`).catch(() => null)) || '' };
+}
+
+// ===== المزود المباشر (تجريبي): نقطة SHEIN الخاصة للسلة المشتركة، بدون وسيط =====
+const shHex = n => { const b = crypto.getRandomValues(new Uint8Array(Math.ceil(n / 2))); return [...b].map(x => x.toString(16).padStart(2, '0')).join('').slice(0, n); };
+const shMintUuid = () => String(Date.now()) + shHex(50);
+const shUsd = o => o && typeof o === 'object' ? num(o.usdAmount != null ? o.usdAmount : o.amount, 0) : num(o, 0);
+function shMapBff(d) {
+  const root = (d && (d.info || d.data || d)) || {}, items = []; let skipped = 0;
+  for (const [k, av] of [['normalProducts', true], ['outStock', false], ['unavailable', false]]) {
+    for (const p of (Array.isArray(root[k]) ? root[k] : [])) {
+      const name = String(p.goods_name || p.goodsName || p.name || '').replace(/[<>]/g, '').trim().slice(0, 200), sale = shUsd(p.salePrice || p.sale_price), retail = shUsd(p.retailPrice || p.retail_price || p.originalPrice) || sale;
+      if (!name || !(sale > 0)) { skipped++; continue; }
+      const gid = String(p.goods_id || p.goodsId || p.sku_code || p.skuCode || '').slice(0, 40), slug = String(p.goods_url_name || p.goodsUrlName || '').toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80);
+      let img = String(p.goods_img || p.goodsImg || p.image || p.img || ''); if (img.startsWith('//')) img = 'https:' + img;
+      const opts = Array.isArray(p.sku_sale_attr || p.skuSaleAttr) ? (p.sku_sale_attr || p.skuSaleAttr).map(a => String(a.attr_value_name || a.attrValueName || a.value || '')).filter(Boolean).join(' / ') : String(p.options || '');
+      items.push({ gid, name, img: /^https:\/\//.test(img) ? img.slice(0, 400) : '', options: opts.replace(/[<>]/g, '').slice(0, 60), link: gid ? (shLinkOk(`https://www.shein.com/${slug || 'p'}-p-${gid}.html`) || '') : '', sale, retail: Math.max(retail, sale), avail: av, stock: num(p.stock || p.quantity, 0) });
+    }
+  }
+  return { items, skipped };
+}
+async function shProvDirect(env, s, link) {
+  const t0 = Date.now(); let u; try { u = new URL(link); } catch { throw shWhy(400, 'bad_link'); }
+  const shc = u.searchParams.get('shc') || '';
+  let gid = u.searchParams.get('group_id') || '';
+  const call = async (url, init, ms) => { const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), ms); try { return await fetch(url, { ...init, signal: ctl.signal }); } finally { clearTimeout(tm); } };
+  try {
+    if (!gid) {
+      const r = await call(u.href, { method: 'GET', redirect: 'manual', headers: { 'user-agent': SH_UA, accept: 'text/html,*/*', 'accept-language': 'ar,en;q=0.8' } }, 6000);
+      const html = await shReadCapped(r, 131072), m = html.match(/group_?id\\*["']*\s*[:=]\s*\\*["']*(\d{6,20})/i);
+      gid = m ? m[1] : '';
+    }
+    if (!gid) throw shWhy(502, 'direct_no_group');
+    const r = await call('https://m.shein.com/bff-api/order/cart/share/landing', { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json', 'user-agent': SH_UA, origin: 'https://m.shein.com', referer: `https://m.shein.com/cart/share/landing?group_id=${gid}`, cookie: 'armorUuid=' + shMintUuid() }, body: JSON.stringify({ groupId: gid, group_id: gid, shc, shareToken: shc }) }, 8000);
+    let data = null; try { data = JSON.parse(await shReadCapped(r, 1500000)); } catch {}
+    shLog({ stage: 'direct', ms: Date.now() - t0, status: r.status, code: data && data.code != null ? String(data.code) : '', keys: data && typeof data === 'object' ? Object.keys(data.info || data.data || data).slice(0, 8) : [] });
+    if (!r.ok) throw shWhy(502, 'direct_http_' + r.status);
+    const m = shMapBff(data);
+    if (!m.items.length) throw shWhy(502, 'direct_empty');
+    return { items: m.items.slice(0, 60), skipped: m.skipped };
+  } catch (e) {
+    if (e && e.why) throw e;
+    throw shWhy(502, e && e.name === 'AbortError' ? 'direct_timeout' : 'direct_net');
+  }
+}
+// المزود: omkar | direct (تجريبي) | auto (المباشر ثم Omkar احتياطًا). روابط المنتجات عبر Apify دائمًا.
+async function shFetch(env, s, input, onStage) {
   const pref = String(s.shein_provider || 'auto');
+  const stage = async st => { if (onStage) await onStage(st); };
   if (input.kind === 'cart') {
     if (pref === 'apify') throw httpError(400, 'المزود الحالي يقبل روابط المنتجات فقط — الصق رابط كل منتج في سطر');
-    try { return await shProvOmkar(env, s, await shUnfurl(input.link)); }
-    catch (e) { if (e.status >= 500 || e.status === 503) e.publicMessage = e.message = e.message + ' — جرّب لصق روابط المنتجات (كل رابط في سطر)'; throw e; }
+    const src = ['direct', 'auto', 'omkar'].includes(s.shein_cart_src) ? s.shein_cart_src : 'omkar', order = src === 'omkar' ? ['omkar'] : src === 'direct' ? ['direct'] : ['direct', 'omkar'];
+    let last;
+    for (const prov of order) {
+      await stage('fetch'); const t0 = Date.now();
+      try {
+        const r = prov === 'direct' ? await shProvDirect(env, s, input.link) : await shProvOmkar(env, s, await shUnfurl(input.link));
+        await shStat(env, prov, true, Date.now() - t0, ''); return { ...r, provider: prov, ms: Date.now() - t0 };
+      } catch (e) { await shStat(env, prov, false, Date.now() - t0, e.why || ('http_' + (e.status || 0))); last = e; }
+    }
+    const e = last; if (e.status >= 500 || e.status === 503) e.publicMessage = e.message = e.message + ' — جرّب لصق روابط المنتجات (كل رابط في سطر)'; throw e;
   }
   if (pref === 'omkar') throw httpError(400, 'المزود الحالي يقبل رابط السلة فقط');
-  return shProvApify(env, s, input);
+  await stage('fetch'); const t0 = Date.now();
+  try { const r = await shProvApify(env, s, input); await shStat(env, 'apify', true, Date.now() - t0, ''); return r; }
+  catch (e) { await shStat(env, 'apify', false, Date.now() - t0, e.why || ('http_' + (e.status || 0))); throw e; }
 }
 const SH_PROVIDERS = { omkar: shProvOmkar, apify: shProvApify };
 
@@ -10257,8 +10336,7 @@ const shDebitAmt = (s, w, lyd) => w === 'usd' ? round2(lyd / Math.max(0.01, num(
 const shEvt = (o, st, by, note) => [...(Array.isArray(o.events) ? o.events.slice(-39) : []), { at: nowIso(), st, by, ...(note ? { note: String(note).slice(0, 160) } : {}) }];
 function shPublic(o) {
   return { id: o._id, status: o.status, status_ar: SH_ST[o.status] || o.status, items: o.items, rate: o.rate, commission_pct: o.commission_pct, goods_lyd: o.goods_lyd, commission_lyd: o.commission_lyd, total_lyd: o.total_lyd,
-    deposit_lyd: o.deposit_lyd, events: (Array.isArray(o.events) ? o.events.slice(-20) : []).map(e => ({ at: e.at, st: e.st })), kg: o.kg || 0, kg_lyd: o.kg_lyd || 0, shipping_lyd: o.shipping_lyd || 0, remaining_lyd: shRemaining(o), note: o.user_note || '', created_at: o.created_at, updated_at: o.updated_at,
-    events: (o.events || []).map(e => ({ at: e.at, st: e.st })) };
+    deposit_lyd: o.deposit_lyd, events: (Array.isArray(o.events) ? o.events.slice(-20) : []).map(e => ({ at: e.at, st: e.st })), kg: o.kg || 0, kg_lyd: o.kg_lyd || 0, shipping_lyd: o.shipping_lyd || 0, remaining_lyd: shRemaining(o), note: o.user_note || '', created_at: o.created_at, updated_at: o.updated_at};
 }
 const shRemaining = o => o.final ? 0 : Math.max(0, round2(num(o.total_lyd, 0) + num(o.shipping_lyd, 0) - num(o.deposit_lyd, 0)));
 
@@ -10270,16 +10348,20 @@ async function handleSheinQuote(user, body, env) {
   if (!input) throw httpError(400, 'الصق رابط مشاركة السلة من تطبيق SHEIN، أو روابط المنتجات (رابط في كل سطر)');
   if (!(num(s.shein_rate, 0) > 0)) throw httpError(503, 'سعر الصرف غير مضبوط — تواصل مع الإدارة');
   if (!memAllowWin(`shq_${user.uid}`, 10, 3600)) throw httpError(429, 'محاولات كثيرة — حاول بعد ساعة');
+  const job = /^[a-z0-9]{8,24}$/.test(String(body.job || '')) ? String(body.job) : '';
+  await shStage(env, user.uid, job, 'read');
   const lk = 'shu:' + user.uid + ':' + (await sha256Hex(input.key)).slice(0, 24), hit = await env.KV.get(lk).catch(() => null);
   if (hit) { const q = await env.KV.get('shq:' + hit, 'json').catch(() => null); if (q && q.uid === user.uid) return { success: true, ...shQuoteView(q, hit) }; }
   const cap = Math.max(1, Math.round(num(s.shein_month_cap, 180))), mk = 'shein:m:' + new Date().toISOString().slice(0, 7), used = num(await env.KV.get(mk), 0);
   if (used >= cap) throw httpError(503, 'الخدمة مشغولة حاليًا — حاول لاحقًا');
-  const r = await shFetch(env, s, input);
+  const r = await shFetch(env, s, input, st => shStage(env, user.uid, job, st));
+  await shStage(env, user.uid, job, 'price');
   await env.KV.put(mk, String(used + 1), { expirationTtl: 40 * 86400 });
   const qid = randomSuffix(12), ttl = Math.max(10, Math.min(120, Math.round(num(s.shein_quote_min, 30)))) * 60;
   const q = { uid: user.uid, link, src: input.kind, skipped: r.skipped || 0, items: r.items, rate: num(s.shein_rate, 0), commission_pct: Math.max(0, num(s.shein_commission_pct, 10)), deposit_pct: Math.min(100, Math.max(0, num(s.shein_deposit_pct, 40))), kg_lyd: num(s.shein_kg_lyd, 60), exp: Date.now() + ttl * 1000 };
   await env.KV.put('shq:' + qid, JSON.stringify(q), { expirationTtl: ttl });
   await env.KV.put(lk, qid, { expirationTtl: Math.min(ttl, 600) });
+  await shStage(env, user.uid, job, 'done');
   return { success: true, ...shQuoteView(q, qid) };
 }
 const shQuoteView = (q, qid) => ({ qid, exp: q.exp, skipped: q.skipped || 0, rate: q.rate, commission_pct: q.commission_pct, deposit_pct: q.deposit_pct, kg_lyd: q.kg_lyd,
@@ -10407,10 +10489,12 @@ async function handleSheinPay(user, body, env) {
 
 async function handleAdminShein(user, body, env) {
   const action = String(body.action || 'list');
-  const view = ['list', 'get', 'cfg'].includes(action);
-  const staff = await requirePermission(user, env, action === 'set_key' ? 'settings.manage' : view ? 'orders.view' : 'orders.approve');
+  const view = ['list', 'get', 'cfg', 'stats'].includes(action);
+  const staff = await requirePermission(user, env, action === 'set_key' || action === 'stats_reset' ? 'settings.manage' : view ? 'orders.view' : 'orders.approve');
   const s = await getSettings(env);
-  if (action === 'cfg') return { success: true, has_key: !!(await shKey(env)), has_apify: !!(await shKey(env, 'apify')), provider: String(s.shein_provider || 'auto'), on: s.shein_on === true, host: shHost(s), rate: num(s.shein_rate, 0), commission_pct: num(s.shein_commission_pct, 10), kg_lyd: num(s.shein_kg_lyd, 60), deposit_pct: num(s.shein_deposit_pct, 40), month_used: num(await env.KV.get('shein:m:' + new Date().toISOString().slice(0, 7)), 0), month_cap: num(s.shein_month_cap, 180) };
+  if (action === 'stats') return { success: true, stats: shStatView((await env.KV.get(SH_STAT_KEY, 'json').catch(() => null)) || {}), src: ['direct', 'auto', 'omkar'].includes(s.shein_cart_src) ? s.shein_cart_src : 'omkar' };
+  if (action === 'stats_reset') { await env.KV.delete(SH_STAT_KEY); await logOp(env, staff.uid, 'shein.stats_reset', {}, {}, true); return { success: true }; }
+  if (action === 'cfg') return { success: true, cart_src: ['direct', 'auto', 'omkar'].includes(s.shein_cart_src) ? s.shein_cart_src : 'omkar', has_key: !!(await shKey(env)), has_apify: !!(await shKey(env, 'apify')), provider: String(s.shein_provider || 'auto'), on: s.shein_on === true, host: shHost(s), rate: num(s.shein_rate, 0), commission_pct: num(s.shein_commission_pct, 10), kg_lyd: num(s.shein_kg_lyd, 60), deposit_pct: num(s.shein_deposit_pct, 40), month_used: num(await env.KV.get('shein:m:' + new Date().toISOString().slice(0, 7)), 0), month_cap: num(s.shein_month_cap, 180) };
   if (action === 'list') {
     const want = String(body.status || 'all');
     const rows = await fsQueryRaw(env, { from: [{ collectionId: 'shein_orders' }], limit: 300 });

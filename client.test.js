@@ -52,4 +52,11 @@ t('الدفع: المحفظة غير الكافية تعطّل الزر، وال
   const h = V.vSheinPage(); assert.ok(/id="shPayGo"[^>]*disabled/.test(h)); assert.ok(h.includes('غير كافٍ'));
   sh.mode = 'ezone'; const h2 = V.vSheinPage(); assert.ok(!/id="shPayGo"[^>]*disabled/.test(h2));
 });
+t('شاشة التحميل: مراحل حقيقية (قراءة، جلب، تسعير) تتقدّم حسب مرحلة السيرفر', () => {
+  const sh = V.shState(); sh.tab = 'new'; sh.q = null; sh.busy = true; sh.pct = 40;
+  const lis = h => (h.match(/<li class="([^"]*)"/g) || []).map(x => x.replace('<li class="', '').replace('"', ''));
+  sh.stage = 'read'; assert.deepStrictEqual(lis(V.vSheinPage()), ['on', '', '']);
+  sh.stage = 'fetch'; let h = V.vSheinPage(); assert.deepStrictEqual(lis(h), ['done', 'on', '']); assert.ok(h.includes('جلب منتجات السلة') && h.includes('id="shStg"'));
+  sh.stage = 'price'; assert.deepStrictEqual(lis(V.vSheinPage()), ['done', 'done', 'on']); sh.busy = false;
+});
 console.log(`\n${n} passed`);

@@ -5933,6 +5933,9 @@ const shTimerEl = q => `<div style="text-align:center;margin-bottom:12px"><span 
 const shHead2 = '<h1 class="lm-title">تسوق من SHEIN</h1><p class="lm-sub">اكتشف أحدث المنتجات</p>';
 const shErrEl = sh => `<div id="shErr" class="sx-err" aria-live="polite">${esc(sh.err)}</div>`;
 const SH_TICK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>';
+const SH_STG = [['read', 'قراءة الرابط'], ['fetch', 'جلب منتجات السلة من SHEIN'], ['price', 'تسعير المنتجات بالدينار الليبي']];
+const shStgIdx = st => ({ read: 0, fetch: 1, price: 2, done: 3 })[st] ?? 0;
+const shStgHtml = st => { const ix = shStgIdx(st || 'read'); return SH_STG.map(([, tx], i) => `<li class="${i < ix ? 'done' : i === ix ? 'on' : ''}"><i>${i < ix ? SH_TICK : ''}</i><span>${tx}${i === ix ? '…' : ''}</span></li>`).join(''); };
 function vSheinPage() {
   const c = S.config.shein, sh = shState();
   if (!c) return `<div class="page-enter">${ktop('SHEIN')}<div class="card" style="text-align:center;padding:28px 18px">${fennec('empty')}<div class="h4">خدمة SHEIN غير متاحة حاليًا</div><p class="caption">نفتحها قريبًا بإذن الله.</p></div></div>`;
@@ -5949,7 +5952,7 @@ function vSheinPage() {
       <button class="btn btn-secondary btn-block" id="shAgain" type="button">طلب جديد</button></div></div>`;
   }
   if (sh.busy && !sh.q) {
-    return `<div class="page-enter lm-page">${shHead2}<div class="sx-load"><div class="sx-ring" id="shRing" style="--p:${Math.round(sh.pct)}"><span id="shPct">${Math.round(sh.pct)}%</span></div><b>جاري جلب سلتك من SHEIN…</b><small>لحظات وتظهر منتجاتك</small></div></div>`;
+    return `<div class="page-enter lm-page">${shHead2}<div class="sx-load"><div class="sx-ring" id="shRing" style="--p:${Math.round(sh.pct)}"><span id="shPct">${Math.round(sh.pct)}%</span></div><ul class="sx-stg" id="shStg">${shStgHtml(sh.stage)}</ul><small>لحظات وتظهر منتجاتك — لا تغلق الصفحة</small></div></div>`;
   }
   if (!sh.q) {
     const est = Number(sh.est) > 0 ? (() => { const g = Math.round(Number(sh.est) * c.rate * 100) / 100, t = Math.round((g + Math.round(g * c.commission_pct) / 100) * 100) / 100; return `<div class="caption" id="shEstOut">≈ <b class="tabular">${shM(t)}</b> شامل العمولة · العربون ${shM(Math.min(t, Math.ceil(t * c.deposit_pct / 100)))}</div>`; })() : '<div class="caption" id="shEstOut"></div>';
@@ -6022,13 +6025,17 @@ function shConfetti() {
 async function shQuote() {
   const sh = shState(); sh.link = shClean($('#shLink') ? $('#shLink').value : sh.link) || ($('#shLink') ? $('#shLink').value.trim() : sh.link); sh.err = '';
   if (!sh.link) { sh.err = 'الصق رابط السلة أو روابط المنتجات من SHEIN'; return render(); }
-  sh.busy = true; sh.pct = 0; const t0 = Date.now(); render();
-  const tm = setInterval(() => { sh.pct = 96 * (1 - Math.exp(-(Date.now() - t0) / 9000)); const r = $('#shRing'), p = $('#shPct'); if (r) r.style.setProperty('--p', Math.round(sh.pct)); if (p) p.textContent = Math.round(sh.pct) + '%'; }, 250);
+  const job = Array.from(crypto.getRandomValues(new Uint8Array(12)), b => (b % 36).toString(36)).join('');
+  sh.busy = true; sh.pct = 0; sh.stage = 'read'; const t0 = Date.now(); render();
+  const paint = () => { const ix = shStgIdx(sh.stage), cap = ix >= 2 ? 96 : ix === 1 ? 84 : 14, floor = ix >= 2 ? 88 : ix === 1 ? 14 : 4;
+    sh.pct = Math.max(floor, Math.min(cap, 96 * (1 - Math.exp(-(Date.now() - t0) / 9000)))); const r = $('#shRing'), p = $('#shPct'), l = $('#shStg'); if (r) r.style.setProperty('--p', Math.round(sh.pct)); if (p) p.textContent = Math.round(sh.pct) + '%'; if (l && l.dataset.s !== sh.stage) { l.dataset.s = sh.stage; l.innerHTML = shStgHtml(sh.stage); } };
+  const tm = setInterval(paint, 250);
+  const poll = setInterval(() => { api('/api/shein/stage', { job }, 6000).then(r => { if (r && r.stage) sh.stage = r.stage; }).catch(() => {}); }, 1100);
   try {
-    const r = await api('/api/shein/quote', { link: sh.link }, 70000);
-    clearInterval(tm); sh.pct = 100; const rg = $('#shRing'), pc = $('#shPct'); if (rg) rg.style.setProperty('--p', 100); if (pc) pc.textContent = '100%'; await new Promise(res => setTimeout(res, 350));
+    const r = await api('/api/shein/quote', { link: sh.link, job }, 70000);
+    clearInterval(tm); clearInterval(poll); sh.pct = 100; const rg = $('#shRing'), pc = $('#shPct'); if (rg) rg.style.setProperty('--p', 100); if (pc) pc.textContent = '100%'; await new Promise(res => setTimeout(res, 350));
     sh.q = r; sh.step = 'items'; sh.mode = ''; sh.qty = {}; sh.pick = {}; sh.removed = new Set(); sh.key = null; r.items.forEach(it => { if (it.avail) { sh.qty[it.i] = 1; sh.pick[it.i] = 0; } });
-  } catch (e) { clearInterval(tm); sh.err = e.message; sh.q = null; }
+  } catch (e) { clearInterval(tm); clearInterval(poll); sh.err = e.message; sh.q = null; }
   sh.busy = false; render();
 }
 async function shPlace() {

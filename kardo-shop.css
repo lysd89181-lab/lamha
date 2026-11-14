@@ -617,3 +617,13 @@ html[data-theme="dark"] .st-me { border: 1px solid rgba(255, 255, 255, .08); bac
 .kset-row .kset-ic, .kset-row:nth-child(n) .kset-ic { background: none !important; color: var(--u-ink-2) !important; border: 1.5px solid var(--u-line-2); border-radius: 14px !important; }
 html[data-theme="dark"] .kset-row:nth-child(n) .kset-ic { background: none !important; color: #BFD2EE !important; }
 .kset-row.danger .kset-ic { color: var(--u-err) !important; border-color: var(--u-err); }
+
+/* مراحل جلب السلة */
+.sx-stg { list-style: none; margin: 0 0 var(--s-3); padding: 0; display: flex; flex-direction: column; gap: var(--s-2); text-align: start; }
+.sx-stg li { display: flex; align-items: center; gap: var(--s-3); padding: 10px 14px; border-radius: var(--rd-md); background: var(--u-s2); color: var(--u-ink-3); font: 600 var(--fs-sm) var(--font-ui); transition: background-color var(--dur-2), color var(--dur-2), transform var(--dur-2) var(--ease-out); }
+.sx-stg li i { width: 22px; height: 22px; flex: none; border-radius: 50%; border: 2px solid var(--u-line-2); display: grid; place-items: center; }
+.sx-stg li.on { background: var(--u-gold-soft); color: var(--u-ink); transform: translateX(-3px); }
+.sx-stg li.on i { border-color: var(--lm-accent); border-top-color: transparent; animation: spin .8s linear infinite; }
+.sx-stg li.done { color: var(--u-ok); background: var(--u-ok-soft); }
+.sx-stg li.done i { border: 0; background: var(--u-ok); color: #fff; }
+.sx-stg li.done i svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }

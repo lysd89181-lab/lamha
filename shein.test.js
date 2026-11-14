@@ -30,7 +30,10 @@ const heads = [], HOPS = { 'https://onelink.me/abc': 'https://onelink.me/xyz', '
 const LAND = 'https://m.shein.com/ar/cart/share/landing?shc=2_Rd1PT0wsxYB&group_id=7';
 const HTMLS = { 'https://onelink.shein.com/60/meta': '<html><head><meta http-equiv="refresh" content="0; url=' + LAND.replace(/&/g, '&amp;') + '"></head></html>', 'https://onelink.shein.com/60/js': '<script>window.location.href = "' + LAND.replace(/&/g, '\\u0026').replace(/\//g, '\\/') + '";</script>', 'https://onelink.shein.com/60/af': '<a href="https://onelink.shein.com/60/af?x=1&af_web_dp=' + encodeURIComponent(LAND) + '">open</a>', 'https://onelink.shein.com/60/scan': '<script>var a="https://www.google.com/x",b="https://cdn.shein.com/logo.png",c="' + LAND + '";</script>', 'https://onelink.shein.com/60/evil': '<script>location.href="https://evil.com/phish?shc=1"</script><meta http-equiv=refresh content="0;url=http://m.shein.com/x">', 'https://onelink.shein.com/60/none': '<html><body>hello</body></html>' };
 const H405 = new Set(['https://onelink.shein.com/60/head405']), gets = [];
-const fakeFetch = async (url, init = {}) => { if (init.method === 'GET' && init.redirect === 'manual' && HTMLS[url] !== undefined) { gets.push(url); return { status: 200, headers: { get: () => null }, body: null, text: async () => HTMLS[url] }; }
+const bffCalls = []; let bff = { status: 200, body: null };
+const BFF = { code: '0', info: { normalProducts: [{ goods_id: '515174062', goods_name: 'فستان مخطط', goods_img: '//img.ltwebstatic.com/a.jpg', goods_url_name: 'Striped-Dress', salePrice: { usdAmount: '13.25' }, retailPrice: { usdAmount: '16.39' }, sku_sale_attr: [{ attr_value_name: 'أزرق' }, { attr_value_name: 'M' }], stock: 20 }], outStock: [{ goods_id: '9', goods_name: 'نفد', salePrice: { usdAmount: '5' } }], unavailable: [{ goods_id: '8', goods_name: '' }] } };
+HTMLS['https://onelink.shein.com/60/gid?shc=2_x'] = '<script>var a={"shareInfo":{"group_id":"912345678"}}</script>';
+const fakeFetch = async (url, init = {}) => { if (String(url).includes('/bff-api/order/cart/share/landing')) { bffCalls.push({ url, init }); return { ok: bff.status < 400, status: bff.status, body: null, text: async () => JSON.stringify(bff.body) }; } if (init.method === 'GET' && init.redirect === 'manual' && HTMLS[url] !== undefined) { gets.push(url); return { status: 200, headers: { get: () => null }, body: null, text: async () => HTMLS[url] }; }
   if (init.method === 'HEAD' && HTMLS[url] !== undefined) { heads.push(url); return { status: 200, headers: { get: () => null }, body: null }; }
   if (init.method === 'GET' && init.redirect === 'manual') { gets.push(url); const nx = HOPS[url]; return { status: 302, headers: { get: k => k.toLowerCase() === 'location' ? nx : null }, body: null }; }
   if (init.method === 'HEAD') { heads.push(url); if (H405.has(url)) return { status: 405, headers: { get: () => null }, body: null }; const nx = HOPS[url]; return nx ? { status: 302, headers: { get: k => k.toLowerCase() === 'location' ? nx : null } } : { status: 200, headers: { get: () => null } }; }
@@ -46,7 +49,7 @@ const ctx = { Response, crypto: globalThis.crypto, TextEncoder, TextDecoder, ato
   getSettings: async () => ({ ...settings }), secGuard: async () => {}, assertLive: () => {}, assertEmailVerified: () => {}, memAllowWin: () => true, logOp: async (e, uid, a) => { audits.push(a); },
   requirePermission: async (user, e, perm) => { const st = { admin01: ['orders.view', 'orders.approve', 'settings.manage'], viewer1: ['orders.view'] }[user.uid]; if (!st || !st.includes(perm)) { const er = new Error('forbidden'); er.status = 403; throw er; } return { uid: user.uid }; },
   requireFreshAuth: () => {}, staffAlert: () => {}, notify: (e, uid, kind, v) => notes.push({ uid, kind, v }), background: () => {}, withId: (r) => ({ ...r._row[1], _id: r._row[0].split('/')[1] }), escHtml: s => s };
-vm.createContext(ctx); vm.runInContext(code + '\nthis.api={shLinkOk,shCalc,handleSheinQuote,handleSheinOrder,handleSheinList,handleSheinGet,handleSheinCancel,handleSheinPay,handleAdminShein,shRefund,shHost,shParseInput,shUnfurl};', ctx);
+vm.createContext(ctx); vm.runInContext(code + '\nthis.api={shLinkOk,shCalc,handleSheinQuote,handleSheinOrder,handleSheinList,handleSheinGet,handleSheinCancel,handleSheinPay,handleAdminShein,handleSheinStage,shMapBff,shProvDirect,shStatView,shRefund,shHost,shParseInput,shUnfurl};', ctx);
 const A = ctx.api;
 const U = 'userSH00000001', U2 = 'userSH00000002', LINK = 'https://onelink.shein.com/53/62iq4f9ff9cz?shc=2_RcGyFlOGYsS';
 const reset = () => { apify = { status: 201, body: [apifyItem] }; db.clear(); kv.clear(); calls.length = 0; notes.length = 0; audits.length = 0; provider = { status: 200, body: cart }; resetSettings(); db.set('users/' + U, { name: 'منصور', default_wallet: 'bk', wallets: { bk: 2000, ly: 777 }, wallet_balance: 0 }); db.set('users/' + U2, { name: 'خالد', default_wallet: 'bk', wallets: { bk: 5 }, wallet_balance: 0 }); };
@@ -216,5 +219,48 @@ t('الرابط الحقيقي من التطبيق: الاستخراج + سجل 
   let r; try { r = await A.handleSheinQuote({ uid: U }, { link: 'https://onelink.shein.com/60/67vfbe3b96hw?shc=2_Rd1PT0wsxYB' }, env); } finally { console.log = old; }
   assert.ok(r.qid); assert.strictEqual(calls[calls.length - 1].link, LAND); const hop = logs.filter(l => l.startsWith('SHEIN_T ')).map(l => JSON.parse(l.slice(8))).find(x => x.stage === 'unfurl_hop');
   assert.strictEqual(hop.via, 'meta'); assert.ok(hop.bytes > 20 && hop.flags.refresh === true); assert.ok(!/shc=|2_Rd1PT0wsxYB/.test(logs.join('\n')));
+});
+const DLINK = 'https://m.shein.com/ar/cart/share/landing?shc=2_Rd1PT0wsxYB&group_id=912345678';
+const statsOf = async () => (await A.handleAdminShein({ uid: 'admin01' }, { action: 'stats' }, env));
+t('المزود المباشر: يحوّل رد SHEIN لعناصر بنفس شكل Omkar ويتجاهل غير الصالح', async () => {
+  const m = A.shMapBff(BFF); assert.strictEqual(m.items.length, 2); assert.strictEqual(m.skipped, 1);
+  const a = m.items[0]; assert.strictEqual(a.gid, '515174062'); assert.strictEqual(a.sale, 13.25); assert.strictEqual(a.retail, 16.39); assert.strictEqual(a.options, 'أزرق / M'); assert.strictEqual(a.img, 'https://img.ltwebstatic.com/a.jpg'); assert.ok(a.avail && a.link.startsWith('https://www.shein.com/striped-dress-p-515174062')); assert.strictEqual(m.items[1].avail, false);
+});
+t('المصدر direct: طلب POST واحد بكوكي armorUuid بالشكل (طابع زمني + 50 hex) ولا يستدعي Omkar', async () => {
+  reset(); settings.shein_cart_src = 'direct'; bff = { status: 200, body: BFF }; bffCalls.length = 0; const n0 = calls.length;
+  const r = await A.handleSheinQuote({ uid: U }, { link: DLINK }, env); assert.ok(r.qid); assert.strictEqual(r.items[0].sale, 13.25);
+  assert.strictEqual(bffCalls.length, 1); assert.strictEqual(calls.length, n0); const c = bffCalls[0]; assert.strictEqual(c.init.method, 'POST'); assert.ok(/^armorUuid=\d{13}[0-9a-f]{50}$/.test(c.init.headers.cookie), c.init.headers.cookie); assert.strictEqual(JSON.parse(c.init.body).groupId, '912345678');
+  const st = (await statsOf()).stats; assert.strictEqual(st.direct.n, 1); assert.strictEqual(st.direct.ok, 1); assert.ok(typeof st.direct.avg === 'number'); assert.ok(!st.omkar);
+});
+t('direct: يقرأ group_id من صفحة onelink، وإذا فشل يُسجَّل السبب ولا يسقط على Omkar', async () => {
+  reset(); settings.shein_cart_src = 'direct'; bff = { status: 200, body: BFF }; bffCalls.length = 0;
+  const r = await A.handleSheinQuote({ uid: U }, { link: 'https://onelink.shein.com/60/gid?shc=2_x' }, env); assert.ok(r.qid); assert.strictEqual(JSON.parse(bffCalls[0].init.body).groupId, '912345678');
+  reset(); settings.shein_cart_src = 'direct'; bff = { status: 403, body: { code: 'x' } }; await rejects(A.handleSheinQuote({ uid: U }, { link: DLINK }, env), 502);
+  const st = (await statsOf()).stats; assert.strictEqual(st.direct.n, 1); assert.strictEqual(st.direct.ok, 0); assert.strictEqual(st.direct.last_err.why, 'direct_http_403'); assert.ok(!st.omkar);
+});
+t('auto: المباشر أولًا ثم Omkar احتياطيًا، والإحصاء يسجّل الاثنين', async () => {
+  reset(); settings.shein_cart_src = 'auto'; bff = { status: 500, body: null }; bffCalls.length = 0; const n0 = calls.length;
+  const r = await A.handleSheinQuote({ uid: U }, { link: DLINK }, env); assert.ok(r.qid); assert.strictEqual(bffCalls.length, 1); assert.strictEqual(calls.length, n0 + 1);
+  const st = (await statsOf()).stats; assert.strictEqual(st.direct.ok, 0); assert.strictEqual(st.omkar.ok, 1); assert.strictEqual(st.omkar.rate, 100);
+  reset(); settings.shein_cart_src = 'auto'; bff = { status: 200, body: BFF }; const n1 = calls.length; await A.handleSheinQuote({ uid: U }, { link: DLINK }, env); assert.strictEqual(calls.length, n1);
+});
+t('المصدر omkar (الافتراضي) لا يلمس المباشر، وقيمة غريبة ترجع لـ omkar', async () => {
+  reset(); bff = { status: 200, body: BFF }; bffCalls.length = 0; await A.handleSheinQuote({ uid: U }, { link: DLINK }, env); assert.strictEqual(bffCalls.length, 0);
+  reset(); settings.shein_cart_src = 'weird'; await A.handleSheinQuote({ uid: U }, { link: DLINK }, env); assert.strictEqual(bffCalls.length, 0);
+  assert.strictEqual((await statsOf()).src, 'omkar');
+});
+t('مراحل الجلب للزبون: read ثم fetch ثم price ثم done، محصورة بصاحب الطلب', async () => {
+  reset(); const seen = []; const put = ctx.KV_PUT_SPY = null; const old = env.KV.put; env.KV.put = async (k, v, o) => { if (k.startsWith('shs:')) seen.push(v); return old.call(env.KV, k, v, o); };
+  try { await A.handleSheinQuote({ uid: U }, { link: DLINK, job: 'abc123def456' }, env); } finally { env.KV.put = old; }
+  assert.strictEqual(seen.join(','), 'read,fetch,price,done');
+  assert.strictEqual((await A.handleSheinStage({ uid: U }, { job: 'abc123def456' }, env)).stage, 'done'); assert.strictEqual((await A.handleSheinStage({ uid: U2 }, { job: 'abc123def456' }, env)).stage, '');
+  assert.strictEqual((await A.handleSheinStage({ uid: U }, { job: '../x' }, env)).stage, '');
+});
+t('لوحة الإدارة: الإحصاء للمشاهد، والتصفير بصلاحية الإعدادات فقط', async () => {
+  reset(); await A.handleSheinQuote({ uid: U }, { link: DLINK }, env);
+  const v = await A.handleAdminShein({ uid: 'viewer1' }, { action: 'stats' }, env); assert.strictEqual(v.stats.omkar.n, 1); assert.strictEqual(v.stats.omkar.last.length, 1);
+  await rejects(A.handleAdminShein({ uid: 'viewer1' }, { action: 'stats_reset' }, env), 403);
+  await A.handleAdminShein({ uid: 'admin01' }, { action: 'stats_reset' }, env); assert.deepStrictEqual(Object.keys((await statsOf()).stats), []);
+  const cfg = await A.handleAdminShein({ uid: 'admin01' }, { action: 'cfg' }, env); assert.strictEqual(cfg.cart_src, 'omkar');
 });
 (async () => { let ok = 0; for (const [n, f] of tests) { try { await f(); ok++; console.log('ok -', n); } catch (e) { console.log('FAIL -', n, '\n   ', (e.stack || e.message).split('\n').slice(0, 3).join('\n    ')); process.exitCode = 1; } } console.log(`\n${ok}/${tests.length} passed`); })();
