@@ -1,6 +1,6 @@
 /**
  * ═══════════════════════════════════════════════════════════
- *  KARDO — Cloudflare Worker Backend
+ *  LAMHA — Cloudflare Worker Backend
  *  Version: 5.0.0
  *  - Per-user hash-chained ledger (every balance change)
  *  - Atomic idempotency + rate limiting (inside transactions)

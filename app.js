@@ -392,6 +392,20 @@ const RV_SEL = '.lm-prod, .lm-cats button, .lm-info-i, .lm-row, .sx-p, .kcard, .
   if (document.readyState !== 'loading') start(); else document.addEventListener('DOMContentLoaded', start);
 })();
 
+/* مؤشر الشريط السفلي: مربع ناعم ينزلق بين التبويبات */
+function setNavInd() {
+  const nav = document.querySelector('.bottom-nav'); if (!nav) return;
+  const items = [...nav.querySelectorAll('.nav-item')], i = items.findIndex(b => b.classList.contains('active'));
+  nav.classList.toggle('has-ind', i >= 0); if (i >= 0) nav.style.setProperty('--i', i);
+}
+/* تبديل الوضع الداكن/الفاتح بكشف دائري ناعم من مكان الضغط */
+function animateTheme(apply, x, y) {
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!document.startViewTransition || reduce) { apply(); return; }
+  const r = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+  const vt = document.startViewTransition(() => { apply(); });
+  vt.ready.then(() => document.documentElement.animate({ clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${r}px at ${x}px ${y}px)`] }, { duration: 650, easing: 'cubic-bezier(.22,1,.36,1)', pseudoElement: '::view-transition-new(root)' })).catch(() => {});
+}
 /* ═══ UI Helpers ═══ */
 const setHTML = (sel, html) => { const el = $(sel); if (el) el.innerHTML = html; };
 const onTap = (sel, fn) => { const el = $(sel); if (el) el.onclick = fn; };
@@ -738,7 +752,7 @@ window.go = (page, keepCat, fromPop) => {
   ensurePageData();
   window.scrollTo({ top: 0, behavior: 'instant' });
   render();
-  $$('[data-nav]').forEach(b => b.classList.toggle('active', b.dataset.nav === page));
+  $$('[data-nav]').forEach(b => b.classList.toggle('active', b.dataset.nav === page)); setNavInd();
 
   if (page === 'services' || page === 'orders') loadServices();
   if (page === 'shop' || page === 'plans' || page === 'dashboard') loadCatalog();
@@ -796,7 +810,7 @@ function paint() {
   paintDock();
   paintBell();
 
-  $$('[data-nav]').forEach(b => b.classList.toggle('active', b.dataset.nav === S.page));
+  $$('[data-nav]').forEach(b => b.classList.toggle('active', b.dataset.nav === S.page)); setNavInd();
   $$('[data-nav="stores"]').forEach(b => { b.style.display = 'none'; });
   $$('[data-nav="kstore"]').forEach(b => { b.style.display = rscOn() ? '' : 'none'; });
 
@@ -855,7 +869,7 @@ let _lastPage = null, _lastHtml = '';
 function lmProd(c) {
   const p = rscNameParts(c.name), min = c.offers && c.offers.length ? c.offers[0].price : 0;
   const price = min > 0 ? (wDef() === 'usd' ? lyd(min * rate()) : wFmt(wPrice(min))) : '';
-  return `<button class="lm-prod${c.maint ? ' off' : ''}" data-rsccat="${esc(c.key)}" type="button"><span class="lm-prod-i"${c.image ? ` style="--cv:url('${esc(rscImgUrl(c.image))}')"` : ''}>${rscImgTag(c)}</span><span class="lm-prod-b"><b dir="auto">${esc(p.title)}</b>${price ? `<span class="lm-prod-p tabular">${esc(price)}</span>` : ''}</span></button>`;
+  return `<button class="lm-prod${c.maint ? ' off' : ''}" data-rsccat="${esc(c.key)}" type="button"><span class="lm-prod-i"${c.image ? ` style="--cv:url('${esc(rscImgUrl(c.image))}')"` : ''}>${rscImgTag(c)}${c.isBrand ? `<i class="lm-prod-n">${c.subs.length} قسم</i>` : c.maint ? '<i class="lm-prod-n off">صيانة</i>' : ''}</span><span class="lm-prod-b"><b dir="auto">${esc(p.title)}</b>${price ? `<span class="lm-prod-p tabular">${c.isBrand ? 'من ' : ''}${esc(price)}</span>` : ''}</span></button>`;
 }
 const LM_CATS = [['all', 'الكل', 'grid', 'data-rscgo="all"'], ['topup', 'شحن الألعاب', 'game', 'data-rscgo="topup"'], ['gift', 'بطاقات', 'giftbox', 'data-rscgo="gift"'], ['subs', 'اشتراكات', 'paycard', 'data-rscgo="subs"']];
 function lmHero() {
@@ -869,7 +883,7 @@ function lmHero() {
 }
 function vDashboard() {
   const st = secOf('store'), on = rscOn() && st.s !== 'off';
-  if (on && !S.rsc.loaded) loadRsc();
+  if (on && (!S.rsc.loaded || S.rsc.cached)) loadRsc();
   const cats = (S.rsc.cats || []).filter(c => !c.maint);
   const seen = new Set(), feat = [];
   for (const c of [...rscPopular(cats, 9), ...rscPicks(cats, 9), ...cats.filter(c => c.featured), ...cats]) { if (!seen.has(c.key)) { seen.add(c.key); feat.push(c); } if (feat.length >= 9) break; }
@@ -888,7 +902,7 @@ function vDashboard() {
     <label class="lm-search">${svg(I.search)}<input id="lmQ" type="search" placeholder="ابحث عن منتج أو خدمة..." autocomplete="off" enterkeyhint="search" aria-label="بحث"></label>
     ${on && st.s === 'maint' ? `<div class="ksec-note">${svg(I.help)}<div><b>المتجر قيد الصيانة</b><span>${esc(st.msg || 'نرجعوا قريب إن شاء الله')}</span></div></div>` : ''}
     ${on && st.s !== 'maint' ? `
-    <div class="lm-cats">${LM_CATS.map(([k, t, ic, at]) => `<button class="c-${k}" ${at} type="button"><span>${svg(I[ic])}</span><em>${t}</em></button>`).join('')}${S.config.shein ? `<button class="c-shein" data-nav="shein" type="button"><span>${svg(EI.bag)}</span><em>SHEIN</em></button>` : ''}</div>
+    <div class="lm-svcs">${[['topup', 'شحن الألعاب', 'ألعاب فورية', 'game', 'data-rscgo="topup"', 'sv-g'], ['gift', 'بطاقات هدايا', 'iTunes وGoogle Play', 'giftbox', 'data-rscgo="gift"', 'sv-b'], ['subs', 'اشتراكات', 'ترفيه وبرامج', 'paycard', 'data-rscgo="subs"', 'sv-p'], ...(S.config.shein ? [['shein', 'SHEIN', 'تسوّق بالدينار', 'bag', 'data-nav="shein"', 'sv-o']] : [])].map(([k, t, s, ic, at, cl]) => `<button class="lm-svc ${cl}" ${at} type="button"><span class="lm-svc-ic">${svg(I[ic] || EI[ic])}</span><span class="lm-svc-t"><b>${t}</b><small>${s}</small></span></button>`).join('')}</div>
     <div class="lm-sec"><span class="lm-sec-ic">${svg(EI.flame)}</span><div><h2>منتجات مميزة</h2>${S.rsc.loaded && cats.length ? `<small>+${cats.length} منتج</small>` : ''}</div><button data-rscgo="all" type="button">عرض الكل ${svg(I.back, 2)}</button></div>
     ${!S.rsc.loaded && !S.rsc.error ? `<div class="lm-grid">${'<div class="skeleton" style="height:168px;border-radius:20px"></div>'.repeat(6)}</div>` : ''}
     ${S.rsc.error && !S.rsc.loaded ? `<div class="card" style="text-align:center;padding:24px 18px"><div class="h4 mb-3">تعذّر تحميل المتجر</div><button class="btn btn-primary" data-rscretry type="button">إعادة المحاولة</button></div>` : ''}
@@ -1663,7 +1677,7 @@ function vOrders() {
       <div class="list-row" data-mcase="${esc(r.id)}" role="button" tabindex="0"><div class="list-icon brand">⚑</div>
         <div class="list-content"><div class="list-title">${esc(r.merchant_name)} — ${esc(r.reason)}</div><div class="list-meta">${esc(dt(r.updated_at || r.created_at))}</div></div>
         <div class="list-end"><span class="badge ${r.status === 'open' ? 'badge-warning' : 'badge-success'}">${r.status === 'open' ? 'مفتوح' : 'محلول'}</span></div></div>`).join('')}</div>` : ''}
-    ${rows.length ? `<div class="list">${rows.map(r => r.html).join('')}</div>` : `
+    ${!rows.length && !S.rscOrdersLoaded && S.user ? `<div class="list">${'<div class="list-row"><div class="skeleton" style="width:52px;height:52px;border-radius:16px"></div><div class="list-content"><div class="skeleton" style="height:14px;width:70%;border-radius:8px;margin-bottom:8px"></div><div class="skeleton" style="height:11px;width:40%;border-radius:8px"></div></div></div>'.repeat(4)}</div>` : rows.length ? `<div class="list">${rows.map(r => r.html).join('')}</div>` : `
       <div class="card" style="text-align:center;padding:44px 20px">
         ${fennec('empty', 130)}
         <div class="h4" style="margin-bottom:6px">لا طلبات بعد</div>
@@ -1821,18 +1835,19 @@ function vSettings() {
   return `
   <div class="page-enter settings-page">
     <div class="st-me">
-      <div class="st-av" aria-hidden="true"><span>${esc((nm.trim()[0] || 'ل').toUpperCase())}</span>${S.profile.email_verified ? `<i class="st-vf">${svg(EI.check, 3)}</i>` : ''}</div>
-      <div class="st-id">
-        <b>${esc(nm)}</b>
-        <small dir="ltr">${esc(ph || email)}</small>
-        <div class="st-tags"><span>باقة ${esc(PLAN_AR[myPlan()])}</span>${S.profile.phone_verified ? '<span class="ok">الرقم موثّق</span>' : ''}</div>
-        <button class="st-chip" data-act="dock-deposit" type="button">${svg(I.wallet2)} شحن المحفظة</button>
+      <div class="st-top">
+        <div class="st-av" aria-hidden="true"><span>${esc((nm.trim()[0] || 'ل').toUpperCase())}</span></div>
+        <div class="st-id">
+          <b>${esc(nm)}</b>
+          <small dir="ltr">${esc(ph || email)}</small>
+        </div>
+        <button class="st-chip" data-act="dock-deposit" type="button">${svg(I.plus, 2)} شحن</button>
       </div>
-    </div>
-    <div class="st-quick">
-      <button data-theme-set="${({ auto: 'light', light: 'dark', dark: 'auto' })[themePref()] || 'dark'}" type="button"><span class="q-a">${svg(EI.moon)}</span>المظهر: ${({ auto: 'تلقائي', light: 'نهاري', dark: 'ليلي' })[themePref()] || 'تلقائي'}</button>
-      <button data-nav="support" type="button"><span class="q-b">${svg(EI.chat)}</span>الدعم الفني</button>
-      <button data-howto="all" type="button"><span class="q-c">${svg(I.help)}</span>كيف أدفع؟</button>
+      <div class="st-stats">
+        <div><small>الباقة</small><b>${esc(PLAN_AR[myPlan()])}</b></div>
+        <div><small>رصيدك</small><b class="tabular">${esc(lyd(wBalOf(S.config.unified ? wT() : 'bk')))}</b></div>
+        <div><small>التوثيق</small><b class="${S.profile.kyc_status === 'approved' ? 'ok' : ''}">${S.profile.kyc_status === 'approved' ? 'موثّق' : S.profile.phone_verified ? 'هاتف' : 'غير موثّق'}</b></div>
+      </div>
     </div>
 
     <div class="kset-label">نشاطي</div>
@@ -1899,7 +1914,7 @@ function bind() {
   bindMarket();
   bindRsc();
   bindInvoices();
-  $$('[data-theme-set]').forEach(b => b.onclick = () => { try { localStorage.setItem('kardo_theme', b.dataset.themeSet); } catch {} if (window.kardoTheme) window.kardoTheme(); render(); });
+  $$('[data-theme-set]').forEach(b => b.onclick = () => { const bb = b.getBoundingClientRect(); animateTheme(() => { try { localStorage.setItem('kardo_theme', b.dataset.themeSet); } catch {} if (window.kardoTheme) window.kardoTheme(); render(); }, bb.left + bb.width / 2, bb.top + bb.height / 2); });
   $$('[data-nav]').forEach(b => b.onclick = () => go(b.dataset.nav));
 
   $$('[data-action]').forEach(b => {
@@ -4612,18 +4627,20 @@ const rscImgUrl = u => !u ? '' : /^\//.test(u) ? API_BASE + u : u;
 const RSC_ST = { submitting: ['badge-warning', 'قيد الإرسال'], created: ['badge-warning', 'قيد التنفيذ'], processing: ['badge-warning', 'قيد التنفيذ'],
   unknown: ['badge-warning', 'قيد المراجعة'], completed: ['badge-success', 'مكتمل'], refunded: ['badge-error', 'مُسترد'] };
 S.rsc = { loaded: false, cats: [], error: false };
+try { const cc = JSON.parse(localStorage.getItem('lamha_cat') || 'null'); if (cc && Array.isArray(cc.all) && cc.all.length) S.rsc = { loaded: true, all: cc.all, cats: rscBrands(cc.all), on: cc.on !== false, at: 0, cached: true }; } catch {}
 let _rscLoading = null;
 async function loadRsc(force) {
   if (_rscLoading || (S.rsc.loaded && !force && Date.now() - (S.rsc.at || 0) < 120000)) return _rscLoading;
   _rscLoading = (async () => {
-    try { const d = await apiGet('/api/rsc/catalog'); S.rsc = { loaded: true, all: d.categories || [], cats: rscBrands(d.categories || []), on: d.on !== false, at: Date.now() }; }
+    try { const d = await apiGet('/api/rsc/catalog'); S.rsc = { loaded: true, all: d.categories || [], cats: rscBrands(d.categories || []), on: d.on !== false, at: Date.now() }; try { const s = JSON.stringify({ all: S.rsc.all, on: S.rsc.on }); if (s.length < 1500000) localStorage.setItem('lamha_cat', s); } catch {} }
     catch { S.rsc = { ...S.rsc, error: true }; }
     _rscLoading = null; render();
   })();
   return _rscLoading;
 }
 async function loadRscOrders() {
-  try { const r = await api('/api/rsc/my-orders', {}); S.rscOrders = r.orders || []; render(); } catch {}
+  try { const r = await api('/api/rsc/my-orders', {}); S.rscOrders = r.orders || []; } catch {}
+  S.rscOrdersLoaded = true; render();
 }
 const rscCatBy = key => (S.rsc.cats || []).find(c => c.key === key) || (S.rsc.all || []).find(c => c.key === key);
 // v64: نجمع الأقسام الفرعية تحت قسم رئيسي (البراند) زي المزود — مثلاً «iTunes» وداخله أمريكي/تركي/إماراتي…
@@ -4643,12 +4660,14 @@ function vRscBrand(b) {
   S.rscBrandKey = b.key;
   const q = (S.rscBQ || '').trim().toLowerCase();
   const list = b.subs.filter(c => !q || srchMatch(c.name, q));
-  const g = rscGroup(b) === 'topup' ? 'topup' : 'gift';
-  return `<div class="page-enter">
+  const minP = c => c.offers && c.offers.length ? Math.min(...c.offers.map(o => o.price)) : 0;
+  const fmt = v => wDef() === 'usd' ? lyd(v * rate()) : wFmt(wPrice(v));
+  return `<div class="page-enter lm-page">
     ${ktop(rscNameParts(b.name).title, true)}
-    <p class="kpage-sub">${b.subs.length} قسم — اختار اللي يناسبك</p>
-    ${b.subs.length > 8 ? `<label class="ksearch">${svg(I.search)}<input id="rscBQ" placeholder="ابحث داخل ${esc(b.name)}…" value="${esc(S.rscBQ || '')}" autocomplete="off" inputmode="search"></label>` : ''}
-    ${g === 'topup' ? `<div class="kgrid3">${list.map(rscTile).join('')}</div>` : `<div class="kgrid2">${list.map(rscGiftTile).join('')}</div>`}
+    <div class="lm-bh"${b.image ? ` style="--cv:url('${esc(rscImgUrl(b.image))}')"` : ''}><span class="lm-bh-i">${rscImgTag(b)}</span><div><b dir="auto">${esc(rscNameParts(b.name).title)}</b><small>${b.subs.length} قسم — اختر الدولة أو الفئة المناسبة</small></div></div>
+    ${b.subs.length > 8 ? `<label class="lm-search">${svg(I.search)}<input id="rscBQ" placeholder="ابحث داخل ${esc(b.name)}…" value="${esc(S.rscBQ || '')}" autocomplete="off" inputmode="search"></label>` : ''}
+    <div class="lm-subs">${list.map(c => { const p = rscNameParts(c.name), m = minP(c);
+      return `<button class="lm-srow${c.maint ? ' off' : ''}" data-rsccat="${esc(c.key)}" type="button"><span class="lm-sub-f">${p.cc ? p.flag : rscImgTag(c)}</span><span class="lm-sub-t"><b dir="auto">${esc(p.cc ? (p.country || p.title) : p.title)}</b><small>${c.maint ? 'قيد الصيانة' : m ? 'ابتداءً من <bdi class="tabular">' + esc(fmt(m)) + '</bdi>' : ''}</small></span>${c.maint ? '' : `<span class="lm-sub-z">${svg(EI.zap)}فوري</span>`}<span class="lm-sub-go">${svg(I.back, 2)}</span></button>`; }).join('')}</div>
     ${!list.length ? '<div class="caption" style="text-align:center;padding:20px">لا نتائج</div>' : ''}
   </div>`;
 }
@@ -4734,8 +4753,12 @@ function rscHome() {
     ${top.length >= 3 ? row(svg(I.fire), 'الأكثر شحنًا', top, 'all') : picks.length ? row(svg(I.star), 'مختارات لمحة', picks, 'all') : ''}
     ${RSC_GROUPS.map(g => row(rscIc(g), RSC_TT[g].t, by(g), g, cnt(g))).join('')}`;
 }
+function lmTabs(tab, cats) {
+  const has = g => g === 'all' || cats.some(c => rscGroup(c) === g);
+  return `<div class="lm-tabs">${RSC_TABS.filter(([k]) => has(k)).map(([k, t]) => `<button class="${tab === k ? 'on' : ''}" data-rsctab="${k}" type="button">${t}</button>`).join('')}</div>`;
+}
 function vKStore() {
-  if (!S.rsc.loaded) loadRsc();
+  if (!S.rsc.loaded || S.rsc.cached) loadRsc();
   const cur = S.rscCat ? rscCatBy(S.rscCat) : null;
   if (!S.rscCat) S.rscBrandKey = null;
   if (cur && cur.isBrand) return vRscBrand(cur);
@@ -4744,34 +4767,32 @@ function vKStore() {
   const q = (S.rscQ || '').trim().toLowerCase();
   const tab = S.rscTab || 'all';
   const cats = S.rsc.cats || [];
-  const shown = q ? (S.rsc.all || cats).filter(c => srchMatch(c.name + ' ' + (c.brand || ''), q)) : cats.filter(c => tab === 'all' || rscGroup(c) === tab);   // v64: البحث يلقى الأقسام الفرعية مباشرة
-  const feat = cats.filter(c => c.featured).slice(0, 5);
+  const shown = q ? (S.rsc.all || cats).filter(c => srchMatch(c.name + ' ' + (c.brand || ''), q)) : cats.filter(c => tab === 'all' || rscGroup(c) === tab);
   const home = tab === 'all' && !q;
   if (home && S.user && !S.rscOrders) { S.rscOrders = []; loadRscOrders(); }
   const lim = S.rscLim && S.rscLim.k === tab + '|' + q ? S.rscLim.n : 24;
-  const tileG = (c, g) => g === 'topup' ? rscTile(c) : rscGiftTile(c);
-  const gridOf = (list, g) => g === 'topup' || g === 'mix' ? `<div class="kgrid3">${list.map(rscTile).join('')}</div>` : `<div class="kgrid2">${list.map(rscGiftTile).join('')}</div>`;
   const ord = list => [...list].sort((a, b) => (a.maint ? 1 : 0) - (b.maint ? 1 : 0) || (b.pop || 0) - (a.pop || 0) || a.sort - b.sort);
-  const rowOf = g => { const all = ord(cats.filter(c => rscGroup(c) === g)); if (!all.length) return '';
-    return `<div class="ksh"><h2><i class="ksh-ic">${rscIc(g)}</i>${RSC_TT[g].t}</h2><button data-rsctab="${g}" type="button">عرض الكل (${all.length})</button></div>
-      <div class="krow mb-5">${all.slice(0, 10).map(c => g === 'topup' ? rscTile(c) : rscCard(c, ' inrow')).join('')}</div>`; };
-  const top = rscPopular(cats);
+  const rail = list => `<div class="lm-rail">${list.map(lmProd).join('')}</div>`;
+  const sec = (ic, title, n, btn) => `<div class="lm-sec"><span class="lm-sec-ic">${ic}</span><div><h2>${title}</h2>${n ? `<small>${n} قسم</small>` : ''}</div>${btn || ''}</div>`;
+  const top = rscPopular(cats, 10);
+  const groupBlock = g => { const all = ord(cats.filter(c => rscGroup(c) === g)); if (!all.length) return '';
+    return `${sec(rscIc(g), RSC_TT[g].t, all.length, `<button data-rsctab="${g}" type="button">عرض الكل ${svg(I.back, 2)}</button>`)}${rail(all.slice(0, 10))}`; };
   const list = ord(shown), page = list.slice(0, lim), rest = list.length - page.length;
-  return `<div class="page-enter">
-    <h1 class="kpage-title">المتجر</h1>
-    <p class="kpage-sub">شحن ألعاب وبطاقات واشتراكات — يوصلك خلال ثوانٍ</p>
-    <label class="ksearch">${svg(I.search)}<input id="rscQ" placeholder="ابحث عن لعبة أو بطاقة…" value="${esc(S.rscQ || '')}" autocomplete="off" inputmode="search"></label>
-    <div id="kChips">${rscChips(tab, cats)}</div><div id="kRes">
-    ${!S.rsc.loaded && !S.rsc.error ? `<div class="kgrid3">${'<div class="skeleton" style="height:190px;border-radius:18px"></div>'.repeat(6)}</div>` : ''}
+  const skel = `<div class="lm-grid">${'<div class="skeleton" style="height:190px;border-radius:20px"></div>'.repeat(6)}</div>`;
+  return `<div class="page-enter lm-page">
+    <h1 class="lm-title" style="text-align:start;margin-top:4px">المتجر</h1>
+    <p class="lm-sub" style="text-align:start">شحن ألعاب وبطاقات واشتراكات — يوصلك خلال ثوانٍ</p>
+    <label class="lm-search">${svg(I.search)}<input id="rscQ" placeholder="ابحث عن لعبة أو بطاقة…" value="${esc(S.rscQ || '')}" autocomplete="off" inputmode="search"></label>
+    <div id="kChips">${lmTabs(tab, cats)}</div><div id="kRes">
+    ${!S.rsc.loaded && !S.rsc.error ? skel : ''}
     ${S.rsc.error && !S.rsc.loaded ? `<div class="card" style="text-align:center;padding:28px 20px">${fennec('error')}<div class="h4 mb-3">تعذّر تحميل المتجر</div><button class="btn btn-primary" data-rscretry type="button">إعادة المحاولة</button></div>` : ''}
     ${S.rsc.loaded && home ? `
-      ${feat.length ? `<div class="ksh"><h2>عروض اليوم</h2></div>${rscHero(feat)}` : ''}
       ${rscAgain()}
-      ${top.length >= 3 ? `<div class="ksh"><h2><i class="ksh-ic">${svg(I.fire)}</i>الأكثر شحنًا</h2></div><div class="krow mb-5">${top.map(c => rscGroup(c) === 'topup' ? rscTile(c) : rscCard(c, ' inrow')).join('')}</div>` : ''}
-      ${RSC_GROUPS.map(rowOf).join('')}` : ''}
+      ${top.length >= 3 ? `${sec(svg(EI.flame), 'الأكثر طلبًا', 0)}${rail(top)}` : ''}
+      ${RSC_GROUPS.map(groupBlock).join('')}` : ''}
     ${S.rsc.loaded && !home && page.length ? `
-      ${!q ? `<div class="ksh"><h2><i class="ksh-ic">${rscIc(tab)}</i>${RSC_TT[tab].t}</h2><span class="ksh-n">${list.length} قسم</span></div>` : `<div class="caption" style="margin:4px 2px 10px">${list.length} نتيجة</div>`}
-      ${gridOf(page, q ? 'mix' : tab)}
+      ${!q ? sec(rscIc(tab), RSC_TT[tab].t, list.length) : `<div class="caption" style="margin:4px 2px 10px">${list.length} نتيجة</div>`}
+      <div class="lm-grid">${page.map(lmProd).join('')}</div>
       ${rest > 0 ? `<button class="kmore" data-rscmore="${esc(tab + '|' + q)}" data-n="${lim + 24}" type="button">عرض المزيد (${rest})</button>` : ''}` : ''}
     ${S.rsc.loaded && !shown.length ? `<div class="card" style="text-align:center;padding:32px 20px">${fennec('empty')}<div class="h4" style="margin-bottom:6px">${q ? 'لا نتائج' : 'نجهّز الأقسام'}</div><div class="caption">${q ? 'جرّب اسم ثاني' : 'ترجع قريب'}</div></div>` : ''}
     </div>
@@ -4900,9 +4921,10 @@ function rscOrderBody(o) {
 }
 function rscOrderRows() {
   if (!S.rscOrders && S.user) { S.rscOrders = []; loadRscOrders(); }
+  if (!S.rsc.loaded || S.rsc.cached) loadRsc();
   return (S.rscOrders || []).map(o => ({ t: new Date(o.created_at || 0).getTime(), html: `
     <div class="list-row" data-rscorder="${esc(o.id)}" role="button" tabindex="0">
-      <div class="list-icon brand">${o.kind === 'topup' ? '🎮' : '🎁'}</div>
+      <div class="list-icon brand has-img">${(() => { const c = rscCatBy(o.cat); return c && c.image ? `<img src="${esc(rscImgUrl(c.image))}" alt="" loading="lazy" decoding="async">` : svg(o.kind === 'topup' ? I.game : I.giftbox, 2); })()}</div>
       <div class="list-content"><div class="list-title">${esc(o.cat_name)} — ${esc(o.offer_name)}</div><div class="list-meta">${esc(dt(o.created_at))}</div></div>
       <div class="list-end"><div class="list-amount">${esc(o.wallet ? wFmt(o.paid_w, o.wallet) : usd(o.total_usd))}</div>
         <span class="badge ${(RSC_ST[o.status] || ['badge'])[0]}" style="margin-top:4px;font-size:10px">${esc((RSC_ST[o.status] || ['', o.status])[1])}</span></div>
@@ -6094,3 +6116,7 @@ async function shOrder(id) {
   onTap('#shPay', async () => { const b = $('#shPay'); b.disabled = true; try { await api('/api/shein/pay', { id, expect: o.remaining_lyd, idempotency_key: newIdemKey() }, 45000); toast('تم الدفع ✓', 'ok'); kdbTick(true); shOrder(id); } catch (e) { $('#shErr').textContent = e.message; b.disabled = false; } });
   onTap('#shCancel', async () => { if (!confirm('إلغاء الطلب؟ سيرجع العربون لمحفظتك.')) return; try { await api('/api/shein/cancel', { id }); toast('أُلغي وأُرجع العربون ✓', 'ok'); kdbTick(true); shOrder(id); } catch (e) { $('#shErr').textContent = e.message; } });
 }
+/* ظهور الصور تدريجيًا بعد التحميل (يبقى المكان محجوزًا بدل صفحة فاضية) */
+document.addEventListener('load', e => { if (e.target && e.target.tagName === 'IMG') e.target.classList.add('ld'); }, true);
+document.addEventListener('error', e => { if (e.target && e.target.tagName === 'IMG') e.target.classList.add('ld'); }, true);
+setInterval(() => document.querySelectorAll('img:not(.ld)').forEach(i => { if (i.complete) i.classList.add('ld'); }), 1500);

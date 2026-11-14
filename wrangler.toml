@@ -13,7 +13,7 @@ crons = ["*/5 * * * *"]
 [vars]
 APP_CHECK_MODE = "off"
 FIREBASE_PROJECT_NUMBER = "593934928630"
-MAIL_FROM = "Kardo <no-reply@kardo.ly>"
+MAIL_FROM = "LAMHA <no-reply@kardo.ly>"
 SITE_URL = "https://kardo.ly"
 ALLOWED_ORIGIN = "https://kardo.ly,https://www.kardo.ly,https://lysd89181-lab.github.io"
 [[kv_namespaces]]
