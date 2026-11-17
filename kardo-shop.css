@@ -627,3 +627,25 @@ html[data-theme="dark"] .kset-row:nth-child(n) .kset-ic { background: none !impo
 .sx-stg li.done { color: var(--u-ok); background: var(--u-ok-soft); }
 .sx-stg li.done i { border: 0; background: var(--u-ok); color: #fff; }
 .sx-stg li.done i svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ═══ v86 — تقوية دفاعية (إضافات فقط، لا تغيّر الهوية) ═══ */
+/* 1) منع خروج العناصر عن حدود الشاشة */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+img, video, canvas, iframe { max-width: 100%; }
+.toast, .modal, .card { min-width: 0; overflow-wrap: break-word; }
+.toast { max-width: min(100%, 440px); }
+.modal { overscroll-behavior: contain; }
+table { max-width: 100%; }
+/* 2) تركيز واضح للوحة المفاتيح فقط (لا يظهر عند اللمس) */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline: 2px solid var(--u-gold); outline-offset: 2px; box-shadow: var(--shadow-focus); }
+/* 3) منع الضغط المزدوج أثناء التحميل + مؤشر واضح للمعطّل */
+button:disabled, .btn:disabled, .btn[aria-disabled="true"] { cursor: not-allowed; }
+button[aria-busy="true"], .btn[aria-busy="true"] { pointer-events: none; }
+/* 4) الهاتف: منع تكبير iOS التلقائي عند التركيز على الحقول */
+@supports (-webkit-touch-callout: none) { input, select, textarea { font-size: 16px; } }
+/* 5) أهداف لمس مريحة في الشريط السفلي */
+.bottom-nav .nav-item { min-height: 44px; }
+.bottom-nav .nav-item[aria-current="page"] { color: var(--u-ink) !important; }
+/* 6) صفحة الشروط: بطاقات الأقسام على نفس هوية لمحة */
+.tsec { background: var(--u-s1); border-color: var(--u-line); border-radius: var(--u-r); box-shadow: var(--u-shadow); }
+.doc h1 { color: var(--u-ink); }
