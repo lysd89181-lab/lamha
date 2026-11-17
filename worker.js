@@ -1226,14 +1226,21 @@ async function getAccessToken(env) {
 
   const jwt = await signRS256(claim, env.FIREBASE_PRIVATE_KEY);
 
-  const res = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-      assertion: jwt,
-    }),
-  });
+  let res;
+  try {
+    res = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      signal: AbortSignal.timeout(8000),                              // v86
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+        assertion: jwt,
+      }),
+    });
+  } catch (e) {
+    console.error('TOKEN_TIMEOUT', e && e.name);
+    throw httpError(503, 'تعذّر الاتصال بخدمة التوثيق الآن — أعد المحاولة بعد قليل');
+  }
 
   const data = await res.json();
   if (!data.access_token) {
@@ -1273,17 +1280,33 @@ function docPath(env, path) {
   return `projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/${path}`;
 }
 
+// v86: مهلة 8 ثوانٍ للقراءات فقط. الكتابة (commit/beginTransaction/rollback) بدون مهلة عمدًا:
+// قطعها من عندنا قد يخفي كتابة نجحت عند Firestore فيظهر للزبون فشل والمال تحرّك.
+const FS_READ_TIMEOUT_MS = 8000;
+const fsIsWrite = (suffix, init) => /:(commit|beginTransaction|rollback)$/.test(String(suffix)) ||
+  (!!(init && init.method) && String(init.method).toUpperCase() !== 'GET' && !/:(runQuery|runAggregationQuery|batchGet|listCollectionIds)$/.test(String(suffix)));
 async function fsFetch(env, suffix, init = {}) {
   const token = await getAccessToken(env);
   const base = `${FS_BASE}/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents`;
-  const res = await fetch(base + suffix, {
-    ...init,
-    headers: {
-      authorization: `Bearer ${token}`,
-      'content-type': 'application/json',
-      ...(init.headers || {}),
-    },
-  });
+  const timed = !fsIsWrite(suffix, init) && !init.signal;
+  let res;
+  try {
+    res = await fetch(base + suffix, {
+      ...init,
+      ...(timed ? { signal: AbortSignal.timeout(FS_READ_TIMEOUT_MS) } : {}),
+      headers: {
+        authorization: `Bearer ${token}`,
+        'content-type': 'application/json',
+        ...(init.headers || {}),
+      },
+    });
+  } catch (e) {
+    if (timed && e && (e.name === 'TimeoutError' || e.name === 'AbortError')) {
+      console.error('FS_TIMEOUT', suffix.slice(0, 80));
+      throw httpError(503, 'قاعدة البيانات بطيئة الآن — أعد المحاولة بعد قليل');
+    }
+    throw e;
+  }
   if (res.status === 404) { countReads(1); return null; }
   const data = await res.json().catch(() => null);
   if (!res.ok) {
