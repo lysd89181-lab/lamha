@@ -4517,11 +4517,34 @@ async function loadRscA(withOrders) {
   if (withOrders || S.rscA.tab === 'orders') await loadRscOrdersA(true);
   if (S.page === 'rsc') render(true);
 }
+function rscDiagReport(d) {                                          // v87: تقرير تشخيص رد المزود (نص + HTML)
+  const o = d.order || {}, P = d.post, F = d.final;
+  const cost = Number(o.cost_usd) || 0, ch = Number(o.charged_usd) || 0;
+  let price;
+  if (ch > 0) { const diff = Math.round((ch - cost) * 10000) / 10000; price = Math.abs(diff) <= 0.01 ? `✅ المزود خصم $${ch} والسعر المسجّل $${cost} (مطابق)` : `⚠ المزود خصم $${ch} لكن السعر المسجّل $${cost} (فرق $${diff})`; }
+  else price = '❔ ما وصل charged_usd من المزود — قارن رصيدك عند المزود قبل الطلب وبعده';
+  const hk = Object.keys((P && P.headers) || {}).concat(Object.keys((F && F.headers) || {}));
+  const hot = [...new Set(hk.filter(k => /idempot|webhook|ratelimit|request-id/i.test(k)))];
+  const hdr = hot.length ? `ظهرت headers: ${hot.join(', ')}` : 'ما ظهر أي header يخص idempotency أو webhook (غيابه لا يعني إنه غير مدعوم)';
+  const keys = P && P.body && typeof P.body === 'object' ? Object.keys(P.body).join(', ') : '—';
+  const bodies = ['--- رد الإنشاء (الأكواد مخفية) ---', P ? JSON.stringify(P.body, null, 1) : '(غير محفوظ — الطلب أُرسل قبل هذا التحديث)',
+    '--- رد الاكتمال ---', F ? JSON.stringify(F.body, null, 1) : '(ما اكتمل بعد أو غير محفوظ)'].join('\n');
+  const text = [`الطلب: ${o.cat_name || ''} — ${o.offer_name || ''} · الحالة: ${o.status || ''}${o.number ? ' · #' + o.number : ''}`,
+    `السعر: ${price}`, `حقول رد الإنشاء (POST /order): ${keys}${P && P.http ? ' · HTTP ' + P.http : ''}`, `Headers: ${hdr}`, bodies].join('\n');
+  const html = `<div style="padding:16px;direction:rtl"><h3 style="margin:0 0 10px">تشخيص رد المزود</h3>
+    <div class="caption" style="margin-bottom:8px">${esc(o.cat_name || '')} — ${esc(o.offer_name || '')} · ${esc(o.status || '')}</div>
+    <div style="margin:6px 0"><b>السعر:</b> ${esc(price)}</div>
+    <div style="margin:6px 0"><b>حقول رد الإنشاء:</b> <span dir="ltr">${esc(keys)}</span></div>
+    <div style="margin:6px 0"><b>Headers:</b> ${esc(hdr)}</div>
+    <pre dir="ltr" style="white-space:pre-wrap;word-break:break-all;font-size:12px;max-height:38vh;overflow:auto;padding:10px;border-radius:10px;border:1px solid var(--border,#8884)">${esc(bodies)}</pre>
+    <div style="display:flex;gap:8px;margin-top:10px"><button class="btn btn-primary" id="rscDiagCopy" type="button">نسخ التقرير</button><button class="btn btn-secondary" id="rscDiagClose" type="button">إغلاق</button></div></div>`;
+  return { text, html };
+}
 function rscSyncNote(sy) {                                          // v59: هل الجلب كامل؟
   if (!sy || !sy.stats) return '';
   const T = { topup: 'شحن مباشر', gift: 'بطاقات وأكواد' };
   const rows = ['topup', 'gift'].filter(t => sy.stats[t]).map(t => {
-    const x = sy.stats[t], short = x.total != null && x.from_cats < x.total;
+    const x = sy.stats[t], short = x.total != null && x.n < x.total;   // v87: نقارن العدد النهائي (بعد تكملة البراندات) مش أول طلب بس
     return `<div class="caption">${T[t]}: <b class="tabular">${x.n}</b> قسم${x.total != null ? ` · المزود يقول ${x.total}` : ''}${x.from_brands ? ` · ${x.from_brands} منهم انلقوا من البراندات` : ''}${short ? ' <b style="color:var(--error)">⚠ ناقص</b>' : ''}${x.brand_err ? ` · البراندات: ${esc(x.brand_err)}` : ''}</div>`;
   }).join('');
   return `<div class="card card-sm mb-3"><div class="caption mb-1">آخر مزامنة${sy.at ? ' — ' + esc(new Date(sy.at).toLocaleString('ar-LY')) : ''}</div>${rows}</div>`;
@@ -4631,12 +4654,14 @@ function vRsc() {
             <div class="list-meta">${esc(userName(o.uid))} · ${esc(dt(o.created_at))}${o.number ? ' · #' + esc(o.number) : ''}</div>
             ${Object.keys(o.fields || {}).length ? `<div class="caption mono" dir="ltr">${esc(Object.entries(o.fields).map(([k, v]) => k + ': ' + v).join(' · '))}</div>` : ''}
             ${o.fail_reason || o.provider_error ? `<div class="caption" style="color:var(--error)">${esc(o.fail_reason || o.provider_error)}</div>` : ''}
+            ${o.has_diag ? `<div style="margin-top:6px"><button class="btn btn-ghost btn-sm" data-rscdiag="${esc(o.id)}" type="button">🔍 تشخيص رد المزود</button></div>` : ''}
             ${['unknown', 'submitting', 'created', 'processing'].includes(o.status) ? `<div style="display:flex;gap:6px;margin-top:6px">
               <button class="btn btn-secondary btn-sm" data-rscchk="${esc(o.id)}" type="button">إعادة الفحص</button>
               <button class="btn btn-outline-danger btn-sm" data-rscref="${esc(o.id)}" type="button">استرداد للعميل</button></div>` : ''}
           </div>
           <div class="list-end"><div class="list-amount tabular">$${n(o.total_usd).toFixed(2)}</div>
             <div class="caption tabular">ربح $${(n(o.total_usd) - n(o.cost_usd)).toFixed(2)}</div>
+            ${n(o.charged_usd) > 0 ? `<div class="caption tabular">مخصوم من المزود $${n(o.charged_usd).toFixed(4)}</div>` : ''}
             <span class="badge ${(RSC_ST_A[o.status] || ['badge'])[0]}" style="margin-top:4px">${esc((RSC_ST_A[o.status] || ['', o.status])[1])}</span></div>
         </div>`).join('')}</div>` : emptyState(I.box, 'لا طلبات بعد')) }`}
   </div>`;
@@ -4709,6 +4734,17 @@ function bindRscA() {
     if (!confirm('إرجاع المبلغ لمحفظة العميل وإغلاق الطلب؟ تأكد أن الطلب لم يُنفَّذ لدى المزود.')) return;
     try { await api('/api/admin/rsc', { action: 'order', id: b.dataset.rscref, op: 'refund' }); toast('أُعيد المبلغ للعميل ✓', 'ok'); loadRscOrdersA(); }
     catch (e) { toast(e.message, 'bad'); }
+  });
+  document.querySelectorAll('[data-rscdiag]').forEach(b => b.onclick = async () => {
+    b.disabled = true;
+    try {
+      const d = await api('/api/admin/rsc', { action: 'diag', id: b.dataset.rscdiag }); const rep = rscDiagReport(d);
+      modal(rep.html);
+      const cp = $('#rscDiagCopy'), cl = $('#rscDiagClose');
+      if (cl) cl.onclick = () => window.closeModal();
+      if (cp) cp.onclick = async () => { try { await navigator.clipboard.writeText(rep.text); toast('نُسخ التقرير ✓', 'ok'); } catch { toast('تعذّر النسخ — حدّد النص وانسخه يدويًا', 'bad'); } };
+    } catch (e) { toast(e.message, 'bad'); }
+    b.disabled = false;
   });
   const q = $('#rscQ'); if (q) q.oninput = () => {                // v57: البحث يشتغل وأنت تكتب (كان يستنى لين تطلع من الخانة)
     S.rscA.q = q.value; S.rscA.lim = 60; clearTimeout(window._rscQT);

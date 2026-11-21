@@ -7809,6 +7809,34 @@ const RSC_FAIL_AR = {
 };
 const RSC_OPEN = ['created', 'processing'];
 
+// v87: التقاط رد المزود للتشخيص — الأكواد والأسرار تُخفى قبل الحفظ، والحفظ بدون أي كتابة إضافية
+const RSC_HIDE = /^(codes?|keys?|pins?|serials?|vouchers?|redeem\w*|secret\w*|token\w*|password\w*|card_?number|cvv)$/i;
+const RSC_CODELIKE = /^[A-Za-z0-9]{3,8}(?:-[A-Za-z0-9]{3,8}){2,}$/;
+function rscSafe(v, d = 0) {
+  if (v == null || typeof v === 'number' || typeof v === 'boolean') return v;
+  if (typeof v === 'string') return RSC_CODELIKE.test(v) ? '[hidden]' : (v.length > 160 ? v.slice(0, 160) + '…' : v);
+  if (d >= 5) return '[…]';
+  if (Array.isArray(v)) return v.slice(0, 20).map(x => rscSafe(x, d + 1));
+  if (typeof v === 'object') {
+    const o = {};
+    for (const k of Object.keys(v).slice(0, 40)) o[k] = RSC_HIDE.test(k) ? (Array.isArray(v[k]) ? `[hidden ×${v[k].length}]` : '[hidden]') : rscSafe(v[k], d + 1);
+    return o;
+  }
+  return String(v).slice(0, 80);
+}
+function rscHdrs(h) {
+  const o = {};
+  try { h.forEach((v, k) => { k = String(k).toLowerCase(); if (/^(set-cookie|cookie|authorization)$/.test(k)) return; if (/^(content-type|retry-after|location|link|etag|idempot|ratelimit|webhook|request-id|x-)/.test(k)) o[k] = String(v).slice(0, 120); }); } catch {}
+  return o;
+}
+function rscRawStore(j) {
+  try {
+    const m = (j && j.__meta) || {}, base = { at: nowIso(), http: m.status || null, headers: m.headers || {} };
+    let s = JSON.stringify({ ...base, body: rscSafe(j) });
+    if (s.length > 3800) s = JSON.stringify({ ...base, body: { truncated: true, keys: Object.keys(j || {}).slice(0, 40) } });   // يبقى JSON صالحًا دائمًا
+    return s.slice(0, 3800);
+  } catch { return ''; }
+}
 async function rscCall(env, method, path, body) {
   if (!env.RSC_API_KEY) throw httpError(503, 'مفتاح المزود غير مضاف بعد (RSC_API_KEY)');
   const r = await fetch(RSC_BASE + path, {
@@ -7823,7 +7851,9 @@ async function rscCall(env, method, path, body) {
     e.rscDetail = [`HTTP ${r.status}`, j && j.error && j.error.type, j && j.error && j.error.code, j && j.error && j.error.message].filter(Boolean).join(' · ').slice(0, 400);   // v63
     throw e;
   }
-  return j || {};
+  const out = j || {};
+  try { if (typeof out === 'object') Object.defineProperty(out, '__meta', { value: { status: r.status, headers: rscHdrs(r.headers) }, enumerable: false, configurable: true }); } catch {}   // v87: للتشخيص فقط (لا يظهر في JSON ولا في الحلقات)
+  return out;
 }
 const RSC_GRP = ['topup', 'gift', 'subs', 'apps', 'pay'];
 const RSC_KW = {
@@ -8159,7 +8189,7 @@ async function handleRscOrder(user, body, env) {
     return rscOrderView(env, oid, user.uid);
   }
   const number = rscNumOf(j);
-  await fsPatch(env, `rsc_orders/${oid}`, { number, status: rscStatusOf(j), updated_at: nowIso() });
+  await fsPatch(env, `rsc_orders/${oid}`, { number, status: rscStatusOf(j), updated_at: nowIso(), prov_post: rscRawStore(j) });
   await rscApply(env, oid, j);
   // متابعة قصيرة: بطاقات الهدايا غالبًا تكتمل خلال ثوانٍ
   for (let i = 0; i < 3 && number; i++) {
@@ -8180,7 +8210,7 @@ async function rscApply(env, oid, j) {
   if (st === 'completed') {
     const codes = rscCodesOf(j);
     await fsPatch(env, `rsc_orders/${oid}`, { status: 'completed', codes_enc: await encCodes(env, `rsc:${oid}`, codes), codes_n: codes.length,
-      completed_at: nowIso(), updated_at: nowIso(), charged_usd: num(j.charged_usd, 0) });
+      completed_at: nowIso(), updated_at: nowIso(), charged_usd: num(j.charged_usd, 0), prov_final: rscRawStore(j) });
     notify(env, o.uid, 'rsc_done', { name: `${o.cat_name} — ${o.offer_name}`, codes: codes.length > 0 });
     staffAlert(env, 'adm_rsc', { uid: o.uid, ok: true, name: `${o.cat_name} — ${o.offer_name}`, amount: num(o.total_usd, 0).toFixed(2), page: 'sorders' }, 'orders.view');
   } else if (st === 'failed' || st === 'refund' || st === 'refunded' || st === 'cancelled') {
@@ -8277,7 +8307,7 @@ async function rscCron(env, hourly) {
 /* ─── الأدمن ─── */
 async function handleAdminRsc(user, body, env) {
   const action = String(body.action || 'state');
-  const perm = ['state', 'orders', 'olist', 'offers'].includes(action) ? 'orders.view' : action === 'order' ? 'orders.approve' : 'store.edit';
+  const perm = ['state', 'orders', 'olist', 'offers', 'diag'].includes(action) ? 'orders.view' : action === 'order' ? 'orders.approve' : 'store.edit';
   const staff = await requirePermission(user, env, perm);
   const s = await getSettings(env);
   const cfg = await rscCfg(env);
@@ -8501,13 +8531,19 @@ async function handleAdminRsc(user, body, env) {
       sales: round2(done.reduce((t, o) => t + o.total_usd, 0)), profit: round2(done.reduce((t, o) => t + o.total_usd - o.cost_usd, 0)) };
     return { success: true, orders: list.slice(0, 200), sum };
   }
+  if (action === 'diag') {                                           // v87: تقرير تشخيص رد المزود لطلب واحد (الأكواد مخفية)
+    const o = await fsGet(env, `rsc_orders/${String(body.id || '').slice(0, 80)}`);
+    if (!o) throw httpError(404, 'الطلب غير موجود');
+    const pj = s => { try { return s ? JSON.parse(s) : null; } catch { return null; } };
+    return { success: true, order: { id: String(body.id), status: o.status, number: o.number || '', cat_name: o.cat_name, offer_name: o.offer_name, qty: o.qty, cost_usd: num(o.cost_usd, 0), total_usd: num(o.total_usd, 0), charged_usd: num(o.charged_usd, 0), fail_code: o.fail_code || '' }, post: pj(o.prov_post), final: pj(o.prov_final) };
+  }
   if (action === 'orders') {
     const out = [];
     for (const st of ['unknown', 'submitting', 'created', 'processing', 'completed', 'refunded']) {
       const rows = await fsQueryRaw(env, { from: [{ collectionId: 'rsc_orders' }],
         where: { fieldFilter: { field: { fieldPath: 'status' }, op: 'EQUAL', value: { stringValue: st } } }, limit: st === 'completed' || st === 'refunded' ? 40 : 30 }).catch(() => []);
       rows.forEach(r => { const o = withId(r, 'rsc_orders'); out.push({ id: o._id, uid: o.uid, status: o.status, cat_name: o.cat_name, offer_name: o.offer_name, qty: o.qty,
-        total_usd: num(o.total_usd, 0), cost_usd: num(o.cost_usd, 0), number: o.number || '', fields: o.fields || {}, fail_reason: o.fail_reason || '', provider_error: o.provider_error || '', created_at: o.created_at }); });
+        total_usd: num(o.total_usd, 0), cost_usd: num(o.cost_usd, 0), charged_usd: num(o.charged_usd, 0), has_diag: !!(o.prov_post || o.prov_final), number: o.number || '', fields: o.fields || {}, fail_reason: o.fail_reason || '', provider_error: o.provider_error || '', created_at: o.created_at }); });
     }
     out.sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
     return { success: true, orders: out.slice(0, 150) };
